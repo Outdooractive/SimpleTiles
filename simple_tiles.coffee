@@ -33,7 +33,7 @@ open_database = (current_name, current_tileset) ->
     app.mbtiles_projects[current_name]['database'] = {}
     app.mbtiles_projects[current_name]['format']= {}
 
-    zoom_range = current_tileset['range']
+    zoom_range = current_tileset['zoom_range']
     if not zoom_range? or zoom_range.length == 0
         zoom_range = [0..25]
 
