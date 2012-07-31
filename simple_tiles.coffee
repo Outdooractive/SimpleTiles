@@ -35,7 +35,7 @@ open_database = (current_name, current_tileset) ->
 
     zoom_range = current_tileset['zoom_range']
     if not zoom_range? or zoom_range.length == 0
-        zoom_range = [0..25]
+        zoom_range = [0..18]
 
     if filename[0] != '/'
         filename = path.join( process.cwd(), filename)
@@ -76,6 +76,7 @@ for current_layer in layers
     for current_tileset in current_files
         open_database(current_name, current_tileset)
 
+
 # SimpleTiles
 app.configure ->
     app.use app.router
@@ -102,6 +103,9 @@ app.get "/:project/:zoom/:x/:y.:format", (req, res) ->
     zoom = parseInt(req.params.zoom, 10)
     x = parseInt(req.params.x, 10)
     y = parseInt(req.params.y, 10)
+
+    # Flip the y coordinate
+    y = Math.pow(2, zoom) - 1 - y
 
     format = project['format'][zoom]
     if req.params.format != format
