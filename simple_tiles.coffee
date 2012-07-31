@@ -21,39 +21,60 @@ nconf.defaults({
 })
 
 
+open_database = (current_name, current_tileset) ->
+    if not current_name? or not current_tileset?
+        return
+
+    filename = current_tileset['filename']
+    if not filename?
+        return
+
+    app.mbtiles_projects[current_name] = {}
+    app.mbtiles_projects[current_name]['database'] = {}
+    app.mbtiles_projects[current_name]['format']= {}
+
+    zoom_range = current_tileset['range']
+    if not zoom_range? or zoom_range.length == 0
+        zoom_range = [0..25]
+
+    if filename[0] != '/'
+        filename = path.join( process.cwd(), filename)
+
+    db = new sqlite3.Database filename, sqlite3.OPEN_READONLY, (error) ->
+        if error?
+            console.log "Error opening database at '#{filename}'"
+            console.log error
+            process.exit 1
+
+        for current_zoom in zoom_range
+            app.mbtiles_projects[current_name]['database'][current_zoom] = db
+
+        db.get "SELECT value FROM metadata WHERE name='format'", (error, row) ->
+            if error != null
+                console.log error
+                process.exit 1
+
+            if row?
+                for current_zoom in zoom_range
+                    app.mbtiles_projects[current_name]['format'][current_zoom] = row['value']
+            else
+                console.log "- Missing format metadata in the '#{current_name}' layer' [#{zoom_range}], assuming 'png'..."
+                for current_zoom in zoom_range
+                    app.mbtiles_projects[current_name]['format'][current_zoom] = 'png'
+
+            console.log "- Layer '#{current_name}' [#{zoom_range}] (#{filename}) uses '#{app.mbtiles_projects[current_name]['format'][zoom_range[0]]}' image tiles"
+
+
 layers = nconf.get("layers")
 for current_layer in layers
     current_name = current_layer['name']
-    current_tileset = current_layer['tileset']
-    if not current_tileset? or not current_name?
+    current_files = current_layer['files']
+    if not current_files? or not current_name? or current_files.length == 0
         continue
 
-    app.mbtiles_projects[current_name] = {}
-
     # Connection to the mbtiles db
-    if current_tileset[0] != '/'
-        current_tileset = path.join( process.cwd(), current_tileset)
-
-    db = new sqlite3.Database current_tileset, sqlite3.OPEN_READONLY, (error) ->
-        if error?
-            console.log error
-            process.exit 1
-
-    app.mbtiles_projects[current_name]['database'] = db
-
-    db.get "SELECT value FROM metadata WHERE name='format'", (error, row) ->
-        if error != null
-            console.log error
-            process.exit 1
-
-        if row?
-            app.mbtiles_projects[current_name]['format'] = row['value']
-        else
-            console.log "Missing format metadata in the '#{current_name}' layer' - exiting..."
-            process.exit 1
-
-        console.log "- Layer '#{current_name}' (#{current_tileset}) uses '#{app.mbtiles_projects[current_name]['format']}' image tiles"
-
+    for current_tileset in current_files
+        open_database(current_name, current_tileset)
 
 # SimpleTiles
 app.configure ->
@@ -71,14 +92,10 @@ app.configure "production", ->
     app.use express.errorHandler()
 
 
+# Deliver tiles
 app.get "/:project/:zoom/:x/:y.:format", (req, res) ->
     project = app.mbtiles_projects[req.params.project]
     if not project?
-        res.send(404)
-        return
-
-    format = project['format']
-    if req.params.format != format
         res.send(404)
         return
 
@@ -86,7 +103,16 @@ app.get "/:project/:zoom/:x/:y.:format", (req, res) ->
     x = parseInt(req.params.x, 10)
     y = parseInt(req.params.y, 10)
 
-    db = project['database']
+    format = project['format'][zoom]
+    if req.params.format != format
+        res.send(404)
+        return
+
+    db = project['database'][zoom]
+    if not db?
+        res.send(500)
+        return
+
     db.get "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_row=? AND tile_column=?", zoom, y, x, (error, row) ->
         if error != null or not row?
             res.send(404)
@@ -95,5 +121,7 @@ app.get "/:project/:zoom/:x/:y.:format", (req, res) ->
         res.contentType(format)
         res.send row['tile_data']
 
+
+# Start the server
 app.listen nconf.get('port'), nconf.get('hostname'), ->
     console.log "SimpleTiles server listening on port %d (host %s) in %s mode", app.address().port, app.address().address, app.settings.env
