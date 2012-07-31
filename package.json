@@ -1,0 +1,12 @@
+{
+    "name": "simple_tiles",
+    "description":"A very simple tile server.",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "express": "2.4.3",
+        "coffee-script": ">=1.1.1",
+        "sqlite3": "2.1.5",
+        "nconf": "0.6.4"
+    }
+}
