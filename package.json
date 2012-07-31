@@ -1,5 +1,5 @@
 {
-    "name": "simple_tiles",
+    "name": "SimpleTiles",
     "description":"A very simple tile server.",
     "version": "0.0.1",
     "private": true,
