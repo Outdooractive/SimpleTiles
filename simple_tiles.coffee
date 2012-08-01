@@ -15,6 +15,7 @@ nconf.defaults({
     'layers': []
 })
 
+
 app = module.exports = express.createServer()
 
 if nconf.get('logfile') == 'console'
