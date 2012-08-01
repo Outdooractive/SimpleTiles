@@ -3,12 +3,6 @@ nconf = require("nconf")
 sqlite3 = require("sqlite3")
 path = require("path")
 
-app = module.exports = express.createServer()
-app.use express.logger({ format: 'tiny' })
-
-app.mbtiles_projects = {}
-
-
 nconf.argv().
     env().
     file({ file: '/etc/simple_tiles.cfg' }).
@@ -17,8 +11,19 @@ nconf.argv().
 nconf.defaults({
     'port': 3000,
     'hostname': '127.0.0.1',
+    'logfile': 'console',
     'layers': []
 })
+
+app = module.exports = express.createServer()
+
+if nconf.get('logfile') == 'console'
+    app.use express.logger({ format: 'tiny' })
+else
+    logfile = fs.createWriteStream(nconf.get('logfile'), {flags: 'a'})
+    app.use express.logger({ format: 'tiny', stream: logfile })
+
+app.mbtiles_projects = {}
 
 
 open_database = (current_name, current_tileset) ->
