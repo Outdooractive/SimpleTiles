@@ -2,11 +2,12 @@ express = require("express")
 nconf = require("nconf")
 sqlite3 = require("sqlite3")
 path = require("path")
+fs = require("fs")
 
 nconf.argv().
     env().
-    file({ file: '/etc/simple_tiles.cfg' }).
-    file({ file: 'simple_tiles.cfg' })
+    file({ file: 'simple_tiles.cfg' }).
+    file({ file: '/etc/simple_tiles.cfg' })
 
 nconf.defaults({
     'port': 3000,
