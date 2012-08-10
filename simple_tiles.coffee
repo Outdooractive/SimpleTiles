@@ -4,10 +4,13 @@ sqlite3 = require("sqlite3")
 path = require("path")
 fs = require("fs")
 
-nconf.argv().
-    env().
-    file({ file: 'simple_tiles.cfg' }).
-    file({ file: '/etc/simple_tiles.cfg' })
+app = module.exports = express.createServer()
+
+
+if app.settings.env == "development"
+    nconf.argv().env().file({ file: 'simple_tiles.cfg' })
+else
+    nconf.argv().env().file({ file: '/etc/simple_tiles.cfg' })
 
 nconf.defaults({
     'port': 3000,
@@ -16,8 +19,6 @@ nconf.defaults({
     'layers': []
 })
 
-
-app = module.exports = express.createServer()
 
 if nconf.get('logfile') == 'console'
     app.use express.logger({ format: 'tiny' })
