@@ -88,7 +88,7 @@ app.configure ->
     app.use app.router
 
 
- app.configure "development", ->
+app.configure "development", ->
     app.use express.errorHandler(
         dumpExceptions: true
         showStack: true
@@ -100,7 +100,7 @@ app.configure "production", ->
 
 
 # Deliver tiles
-app.get "/:project/:zoom/:x/:y.:format", (req, res) ->
+app.get "#{nconf.get('path_prefix')}/:project/:zoom/:x/:y.:format", (req, res) ->
     project = app.mbtiles_projects[req.params.project]
     if not project?
         res.send(404)

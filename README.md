@@ -20,6 +20,7 @@ for your own configuration.
 ## Requirements
 
 * Node `>=0.6.17`
+* CoffeeScript
 
 ## Configuration
 
