@@ -58,6 +58,9 @@ open_database = (current_name, current_tileset) ->
         for current_zoom in zoom_range
             app.mbtiles_projects[current_name]['database'][current_zoom] = db
 
+        db.run("PRAGMA cache_size = 20000")
+        db.run("PRAGMA temp_store = memory")
+
         db.get "SELECT value FROM metadata WHERE name='format'", (error, row) ->
             if error != null
                 console.log error
