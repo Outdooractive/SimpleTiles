@@ -1,21 +1,5 @@
 BASE_DIR = File.dirname(__FILE__)
 
-God::Contacts::Email.defaults do |d|
-  d.from_email = 'admin@alpstein.de'
-  d.from_name = 'SimpleTiles'
-  d.delivery_method = :smtp
-end
-
-God.contact(:email) do |c|
-  c.name = 'hubert'
-  c.to_email = 'hubert.burger@alpstein.de'
-end
-
-God.contact(:email) do |c|
-  c.name = 'thomas'
-  c.to_email = 'thomas.rasch@alpstein.de'
-end
-
 God.watch do |w|
     w.name          = "SimpleTiles"
     w.interval      = 30.seconds # default      
@@ -43,13 +27,11 @@ God.watch do |w|
         restart.condition(:memory_usage) do |c|
             c.above = 128.megabytes
             c.times = 15
-            c.notify = ['hubert', 'thomas']
         end
   
         restart.condition(:cpu_usage) do |c|
             c.above = 20.percent
             c.times = 15
-            c.notify = ['hubert', 'thomas']
         end
     end
 
@@ -66,4 +48,3 @@ God.watch do |w|
         end
     end
 end
-
