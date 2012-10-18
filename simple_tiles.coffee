@@ -56,7 +56,7 @@ open_database = (current_name, current_tileset) ->
         if error?
             console.log "Error opening database at '#{filename}'"
             console.log error
-            process.exit 1
+            return
 
         for current_zoom in zoom_range
             app.mbtiles_projects[current_name]['database'][current_zoom] = db
@@ -67,7 +67,7 @@ open_database = (current_name, current_tileset) ->
         db.get "SELECT value FROM metadata WHERE name='format'", (error, row) ->
             if error != null
                 console.log error
-                process.exit 1
+                return
 
             if row?
                 for current_zoom in zoom_range
