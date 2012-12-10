@@ -42,6 +42,9 @@ open_database = (current_name, current_tileset) ->
     app.mbtiles_projects[current_name]['database'] = {}
     app.mbtiles_projects[current_name]['format']= {}
 
+    if current_tileset['default_tile_path']?
+        app.mbtiles_projects[current_name]['default_tile'] = fs.readFileSync(current_tileset['default_tile_path'])
+
     zoom_range = current_tileset['zoom_range']
     if not zoom_range? or zoom_range.length == 0
         zoom_range = [0..18]
@@ -131,7 +134,11 @@ app.get "#{nconf.get('path_prefix')}/:project/:zoom/:x/:y.:format", (req, res) -
 
     db.get "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_row=? AND tile_column=?", zoom, y, x, (error, row) ->
         if error != null or not row?
-            res.send(404)
+            if project['default_tile']?
+                res.contentType(format)
+                res.send project['default_tile']
+            else
+                res.send(404)
             return
 
         res.contentType(format)
