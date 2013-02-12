@@ -85,6 +85,7 @@ for current_layer in layers
     current_name = current_layer['name']
     current_files = current_layer['files']
     if not current_files? or not current_name? or current_files.length == 0
+        console.log "Error loading project '#{current_name}', continuing..."
         continue
 
     # Connection to the mbtiles db
@@ -124,7 +125,11 @@ app.get "#{nconf.get('path_prefix')}/:project/:zoom/:x/:y.:format", (req, res) -
 
     format = project['format'][zoom]
     if req.params.format != format
-        res.send(404)
+        if project['default_tile']?
+            res.contentType("png")
+            res.send project['default_tile']
+         else
+            res.send(404)
         return
 
     db = project['database'][zoom]
