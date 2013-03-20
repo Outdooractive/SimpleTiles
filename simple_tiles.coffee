@@ -8,6 +8,9 @@ fs = require("fs")
 
 app = module.exports = express.createServer()
 
+process.on 'uncaughtException', (err) ->
+    console.log "An exception happened: " + err
+
 
 if app.settings.env == "development"
     nconf.argv().env().file({ file: 'simple_tiles.cfg' })
@@ -125,14 +128,15 @@ for current_layer in layers
 # SimpleTiles
 app.configure ->
     app.use app.router
-
+    app.use (err, req, res, next) ->
+        console.log err.stack
+        res.send 500, "Internal server error"
 
 app.configure "development", ->
     app.use express.errorHandler(
         dumpExceptions: true
         showStack: true
     )
-
 
 app.configure "production", ->
     app.use express.errorHandler()
