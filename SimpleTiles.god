@@ -25,7 +25,7 @@ God.watch do |w|
 
     w.restart_if do |restart|
         restart.condition(:memory_usage) do |c|
-            c.above = 128.megabytes
+            c.above = 512.megabytes
             c.times = 15
         end
   
