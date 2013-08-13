@@ -25,12 +25,14 @@ nconf.defaults({
     'layers': []
 })
 
+express.logger.format('oa', '[:date] :method :url :status :res[content-length] - :response-time ms');
 
 if nconf.get('logfile') == 'console'
     app.use express.logger({ format: 'tiny' })
 else
     logfile = fs.createWriteStream(nconf.get('logfile'), {flags: 'a'})
-    app.use express.logger({ format: 'tiny', stream: logfile })
+#    app.use express.logger({ format: 'tiny', stream: logfile })
+    app.use express.logger({ format: 'oa', stream: logfile })
 
 app.mbtiles_projects = {}
 
