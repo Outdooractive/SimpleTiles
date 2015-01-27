@@ -368,16 +368,16 @@ class StatisticsAdapter
         project      = $mbtiles_projects[project_name] rescue nil
 
         if project.nil? then
-            res.write "all:requests:#{$app_request_counter}\nall:success:#{$app_success_counter}\nall:fail:#{$app_fail_counter}\n"
+            res.write "all.requests #{$app_request_counter}\nall.success #{$app_success_counter}\nall.fail #{$app_fail_counter}\n"
 
             $mbtiles_projects.each do |project_name, project|
-                res.write "#{project_name}:requests:#{project[:request_counter]}\n#{project_name}:success:#{project[:success_counter]}\n#{project_name}:fail:#{project[:fail_counter]}\n"
+                res.write "#{project_name}.requests #{project[:request_counter]}\n#{project_name}.success #{project[:success_counter]}\n#{project_name}.fail #{project[:fail_counter]}\n"
             end
 
             return res.finish
         end
 
-        res.write "#{project_name}:requests:#{project[:request_counter]}\n#{project_name}:success:#{project[:success_counter]}\n#{project_name}:fail:#{project[:fail_counter]}\n"
+        res.write "#{project_name}.requests #{project[:request_counter]}\n#{project_name}.success #{project[:success_counter]}\n#{project_name}.fail #{project[:fail_counter]}\n"
 
         # returns the standard [status, headers, body] array
         res.finish
