@@ -36,6 +36,10 @@ else
 
 app.mbtiles_projects = {}
 
+app.requests = 0
+app.requests_success = 0
+app.requests_fail = 0
+
 
 open_database = (current_name, current_tileset) ->
     if not current_name? or not current_tileset?
