@@ -85,7 +85,7 @@ module Rack
                 logger << msg
             end
         end
-q
+
         def extract_content_length(headers)
             value = headers[CONTENT_LENGTH] or return '-'
             value.to_s == '0' ? '-' : value
@@ -362,22 +362,45 @@ class StatisticsAdapter
             return res.finish
         end
 
-        match = /^\/(?<project>\w+)/.match(req.path_info) rescue nil
+        match = /^\/(?<option_name>\w+)/.match(req.path_info) rescue nil
 
-        project_name = match[:project] rescue nil
-        project      = $mbtiles_projects[project_name] rescue nil
+        option_name = match[:option_name] rescue nil
 
-        if project.nil? then
-            res.write "all.requests #{$app_request_counter}\nall.success #{$app_success_counter}\nall.fail #{$app_fail_counter}\n"
+        if option_name == 'config' then
+            res.write "graph_title Simpletiles request rate\n"
+            res.write "graph_vlabel requests/s\n"
+            res.write "graph_category simpletiles\n"
 
-            $mbtiles_projects.each do |project_name, project|
-                res.write "#{project_name}.requests #{project[:request_counter]}\n#{project_name}.success #{project[:success_counter]}\n#{project_name}.fail #{project[:fail_counter]}\n"
+            res.write "requests.label requests\n"
+            res.write "requests.type DERIVE\n"
+            res.write "requests.min 0\n"
+            res.write "success.label success\n"
+            res.write "success.type DERIVE\n"
+            res.write "success.min 0\n"
+            res.write "fail.label fail\n"
+            res.write "fail.type DERIVE\n"
+            res.write "fail.min 0\n"
+
+            $mbtiles_projects.each_key do |project_name|
+                res.write "#{project_name}_requests.label requests\n"
+                res.write "#{project_name}_requests.type DERIVE\n"
+                res.write "#{project_name}_requests.min 0\n"
+                res.write "#{project_name}_success.label success\n"
+                res.write "#{project_name}_success.type DERIVE\n"
+                res.write "#{project_name}_success.min 0\n"
+                res.write "#{project_name}_fail.label fail\n"
+                res.write "#{project_name}_fail.type DERIVE\n"
+                res.write "#{project_name}_fail.min 0\n"
             end
 
             return res.finish
         end
 
-        res.write "#{project_name}.requests #{project[:request_counter]}\n#{project_name}.success #{project[:success_counter]}\n#{project_name}.fail #{project[:fail_counter]}\n"
+        res.write "requests.value #{$app_request_counter}\nsuccess.value #{$app_success_counter}\nfail.value #{$app_fail_counter}\n"
+
+        $mbtiles_projects.each do |project_name, project|
+            res.write "#{project_name}_requests.value #{project[:request_counter]}\n#{project_name}_success.value #{project[:success_counter]}\n#{project_name}_fail.value #{project[:fail_counter]}\n"
+        end
 
         # returns the standard [status, headers, body] array
         res.finish
