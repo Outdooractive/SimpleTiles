@@ -3,8 +3,8 @@ BASE_DIR = File.dirname(__FILE__)
 God.watch do |w|
     w.name          = "SimpleTiles"
     w.interval      = 30.seconds # default      
-    w.env           = { "NODE_ENV" => "production" }
-    w.start         = "/usr/local/bin/coffee #{BASE_DIR}/simple_tiles.coffee"
+    w.env           = { "RACK_ENV" => "production" }
+    w.start         = "#{BASE_DIR}/simple_tiles.rb"
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
     w.log           = "/var/log/simple_tiles/simple_tiles.error.log"
