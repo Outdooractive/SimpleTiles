@@ -91,7 +91,7 @@ module Rack
                 logger << msg
             end
 
-            if status == '200' then
+            if status.to_s[0..3] == '200' then
                 project_name = header[X_PROJECT_NAME]
 
                 if project_name then
