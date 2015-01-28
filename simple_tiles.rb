@@ -95,7 +95,7 @@ module Rack
                 project_name = header[X_PROJECT_NAME]
 
                 if project_name then
-                    success_ms = $mbtiles_counters[project_name][:success_ms]
+                    success_ms = $mbtiles_counters[project_name][:success_ms] || request_time_ms
                     $mbtiles_counters[project_name][:success_ms] = (success_ms + request_time_ms) / 2.0
                 end
 
@@ -143,8 +143,7 @@ class SimpleTilesAdapter
             counters = {
                 :requests => 0,
                 :success => 0,
-                :fail => 0,
-                :success_ms => 0
+                :fail => 0
             }
             $mbtiles_counters[project_name] = counters
 
@@ -365,6 +364,9 @@ class SimpleTilesAdapter
         $app_success_counter += 1
         $mbtiles_counters[project_name][:success] += 1
 
+        average_size = $mbtiles_counters[project_name][:average_size] || tile_data.length
+        $mbtiles_counters[project_name][:average_size] = (average_size + tile_data.length) / 2
+
         res.headers[CONTENT_TYPE] = mime_type(image_format) if ENV["RACK_ENV"] == 'production'
         res.write tile_data
  
@@ -394,6 +396,14 @@ class StatisticsAdapter
         match = /^\/(?<option_name>\w+)/.match(req.path_info) rescue nil
 
         option_name = match[:option_name] rescue nil
+
+        if option_name == 'average_size'
+            $mbtiles_counters.each do |project_name, counters|
+                res.write "#{project_name}_average_size.value #{counters[:average_size]}\n"
+            end
+
+            return res.finish
+        end
 
         if option_name == 'config' then
             res.write "multigraph simpletiles_requests\n"
