@@ -20,10 +20,12 @@ $stdout.sync = true
 #
 
 $mbtiles_projects = {}
+$mbtiles_counters = {}
 
 $app_request_counter = 0
 $app_success_counter = 0
 $app_fail_counter = 0
+$app_success_ms = 0
 
 
 #
@@ -50,6 +52,7 @@ module Rack
         PATH_INFO      = 'PATH_INFO'.freeze
         CONTENT_LENGTH = 'Content-Length'.freeze
         REQUEST_METHOD = 'REQUEST_METHOD'.freeze
+        X_PROJECT_NAME = 'X-PROJECT-NAME'.freeze
 
         def initialize(app, logger=nil)
             @app = app
@@ -68,6 +71,7 @@ module Rack
 
         def log(env, status, header, began_at)
             ended_at = Time.now
+            request_time_ms = (ended_at - began_at) * 1000.0
 
             content_length = extract_content_length(header)
 
@@ -77,7 +81,7 @@ module Rack
                 env[PATH_INFO],
                 status.to_s[0..3],
                 content_length.to_s,
-                (ended_at - began_at) * 1000.0 ]
+                request_time_ms ]
 
             logger = @logger || env['rack.errors']
 
@@ -85,6 +89,17 @@ module Rack
                 logger.write(msg)
             else
                 logger << msg
+            end
+
+            if status == '200' then
+                project_name = header[X_PROJECT_NAME]
+
+                if project_name then
+                    success_ms = $mbtiles_counters[project_name][:success_ms]
+                    $mbtiles_counters[project_name][:success_ms] = (success_ms + request_time_ms) / 2.0
+                end
+
+                $app_success_ms = ($app_success_ms + request_time_ms) / 2.0
             end
         end
 
@@ -104,32 +119,37 @@ class SimpleTilesAdapter
     include Rack::Mime
     include Mongo
 
-    CONTENT_TYPE = 'Content-Type'.freeze
+    CONTENT_TYPE   = 'Content-Type'.freeze
+    X_PROJECT_NAME = 'X-PROJECT-NAME'.freeze
 
     # Setup
     def SimpleTilesAdapter.setup_db(config)
         layers = config[:layers]
 
         layers.each do |layer|
-            current_name = layer[:name]
+            project_name  = layer[:name]
             current_files = layer[:files]
 
-            if current_name.nil? or current_files.nil? or current_files.length == 0 then
-                puts "Error loading project '#{current_name}', continuing..."
+            if project_name.nil? or current_files.nil? or current_files.length == 0 then
+                puts "Error loading project '#{project_name}', continuing..."
                 next
             end
 
-            $mbtiles_projects[current_name] = {}
-            $mbtiles_projects[current_name][:database] = {}
-            $mbtiles_projects[current_name][:format] = {}
-            $mbtiles_projects[current_name][:db_type] = {}
+            $mbtiles_projects[project_name] = {}
+            $mbtiles_projects[project_name][:database] = {}
+            $mbtiles_projects[project_name][:format] = {}
+            $mbtiles_projects[project_name][:db_type] = {}
 
-            $mbtiles_projects[current_name][:request_counter] = 0
-            $mbtiles_projects[current_name][:success_counter] = 0
-            $mbtiles_projects[current_name][:fail_counter] = 0
+            counters = {
+                :requests => 0,
+                :success => 0,
+                :fail => 0,
+                :success_ms => 0
+            }
+            $mbtiles_counters[project_name] = counters
 
             current_files.each do |current_tileset|
-                SimpleTilesAdapter.open_database(current_name, current_tileset)
+                SimpleTilesAdapter.open_database(project_name, current_tileset)
             end
         end
     end
@@ -287,11 +307,15 @@ class SimpleTilesAdapter
         y = Math.pow(2, zoom) - 1 - y
 
         project = $mbtiles_projects[project_name]
-        project[:request_counter] += 1 if project
+
+        if project then
+            $mbtiles_counters[project_name][:requests] += 1
+            res.header[X_PROJECT_NAME] = project_name
+        end
 
         if project.nil? or zoom < 0 or x < 0 or y < 0 then
             $app_fail_counter += 1
-            project[:fail_counter] += 1 if project
+            $mbtiles_counters[project_name][:fail] += 1 if project
 
             res.status = 404
             res.write "Not Found: #{req.script_name}#{req.path_info}"
@@ -331,7 +355,7 @@ class SimpleTilesAdapter
 
         if tile_data.nil? then
             $app_fail_counter += 1
-            project[:fail_counter] += 1
+            $mbtiles_counters[project_name][:fail] += 1
 
             res.status = 404
             res.write "Not Found: #{req.script_name}#{req.path_info}"
@@ -339,7 +363,7 @@ class SimpleTilesAdapter
         end
 
         $app_success_counter += 1
-        project[:success_counter] += 1
+        $mbtiles_counters[project_name][:success] += 1
 
         res.headers[CONTENT_TYPE] = mime_type(image_format) if ENV["RACK_ENV"] == 'production'
         res.write tile_data
@@ -376,7 +400,6 @@ class StatisticsAdapter
             res.write "graph_title Simpletiles request rate\n"
             res.write "graph_vlabel requests/s\n"
             res.write "graph_category simpletiles\n"
-
             res.write "requests.label requests\n"
             res.write "requests.type DERIVE\n"
             res.write "requests.min 0\n"
@@ -387,11 +410,19 @@ class StatisticsAdapter
             res.write "fail.type DERIVE\n"
             res.write "fail.min 0\n"
 
-            $mbtiles_projects.each_key do |project_name|
+            res.write "multigraph simpletiles_request_time\n"
+            res.write "graph_title Simpletiles request time\n"
+            res.write "graph_vlabel ms\n"
+            res.write "graph_category simpletiles\n"
+            res.write "success_ms.label request time\n"
+            res.write "success_ms.type GAUGE\n"
+            res.write "success_ms.min 0\n"
+
+            $mbtiles_counters.each_key do |project_name|
                 res.write "multigraph simpletiles_requests_#{project_name}\n"
-	        res.write "graph_title Simpletiles request rate (#{project_name})\n"
-        	res.write "graph_vlabel requests/s\n"
-            	res.write "graph_category simpletiles\n"
+                res.write "graph_title Simpletiles request rate (#{project_name})\n"
+                res.write "graph_vlabel requests/s\n"
+                res.write "graph_category simpletiles\n"
 
                 res.write "#{project_name}_requests.label requests\n"
                 res.write "#{project_name}_requests.type DERIVE\n"
@@ -402,6 +433,14 @@ class StatisticsAdapter
                 res.write "#{project_name}_fail.label fail\n"
                 res.write "#{project_name}_fail.type DERIVE\n"
                 res.write "#{project_name}_fail.min 0\n"
+
+                res.write "multigraph simpletiles_request_time_#{project_name}\n"
+                res.write "graph_title Simpletiles request time\n"
+                res.write "graph_vlabel ms\n"
+                res.write "graph_category simpletiles\n"
+                res.write "#{project_name}_success_ms.label request time\n"
+                res.write "#{project_name}_success_ms.type GAUGE\n"
+                res.write "#{project_name}_success_ms.min 0\n"
             end
 
             return res.finish
@@ -410,9 +449,15 @@ class StatisticsAdapter
         res.write "multigraph simpletiles_requests\n"
         res.write "requests.value #{$app_request_counter}\nsuccess.value #{$app_success_counter}\nfail.value #{$app_fail_counter}\n"
 
-        $mbtiles_projects.each do |project_name, project|
+        res.write "multigraph simpletiles_request_time\n"
+        res.write "success_ms.value #{$app_success_ms}\n"
+
+        $mbtiles_counters.each do |project_name, counters|
             res.write "multigraph simpletiles_requests_#{project_name}\n"
-            res.write "#{project_name}_requests.value #{project[:request_counter]}\n#{project_name}_success.value #{project[:success_counter]}\n#{project_name}_fail.value #{project[:fail_counter]}\n"
+            res.write "#{project_name}_requests.value #{counters[:requests]}\n#{project_name}_success.value #{counters[:success]}\n#{project_name}_fail.value #{counters[:fail]}\n"
+
+            res.write "multigraph simpletiles_request_time_#{project_name}\n"
+            res.write "#{project_name}_success_ms.value #{counters[:success_ms]}\n"
         end
 
         # returns the standard [status, headers, body] array
