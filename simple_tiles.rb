@@ -372,6 +372,7 @@ class StatisticsAdapter
         option_name = match[:option_name] rescue nil
 
         if option_name == 'config' then
+            res.write "multigraph simpletiles_requests"
             res.write "graph_title Simpletiles request rate\n"
             res.write "graph_vlabel requests/s\n"
             res.write "graph_category simpletiles\n"
@@ -387,6 +388,7 @@ class StatisticsAdapter
             res.write "fail.min 0\n"
 
             $mbtiles_projects.each_key do |project_name|
+                res.write "multigraph simpletiles_requests_#{project_name}"
                 res.write "#{project_name}_requests.label requests\n"
                 res.write "#{project_name}_requests.type DERIVE\n"
                 res.write "#{project_name}_requests.min 0\n"
@@ -401,9 +403,11 @@ class StatisticsAdapter
             return res.finish
         end
 
+        res.write "multigraph simpletiles_requests"
         res.write "requests.value #{$app_request_counter}\nsuccess.value #{$app_success_counter}\nfail.value #{$app_fail_counter}\n"
 
         $mbtiles_projects.each do |project_name, project|
+            res.write "multigraph simpletiles_requests_#{project_name}"
             res.write "#{project_name}_requests.value #{project[:request_counter]}\n#{project_name}_success.value #{project[:success_counter]}\n#{project_name}_fail.value #{project[:fail_counter]}\n"
         end
 
