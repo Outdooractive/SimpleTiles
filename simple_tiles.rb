@@ -6,12 +6,14 @@ require 'rack'
 
 require 'pp'
 require 'logger'
+require 'socket'
 
 require 'pg'
 require 'mongo'
 require 'sqlite3'
 require 'json'
 
+$stdout.sync = true
 
 #
 # projects and global statistics counter
@@ -160,7 +162,8 @@ class SimpleTilesAdapter
         }
         options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
 
-        db = MongoClient.new(options['host'], options['port'], :slave_ok => true).db(options['dbname'])
+        client = MongoClient.new(options['host'], options['port'], :slave_ok => true)
+        db = client.db("admin")
         if db.nil? then
             puts "Error opening database at '#{filename}'"
             exit(1)
@@ -171,6 +174,7 @@ class SimpleTilesAdapter
             exit(1)
         end
 
+        db = client.db(options['dbname'])
         coll = db["tiles"]
 
         zoom_range.each do |current_zoom|
@@ -356,7 +360,8 @@ class StatisticsAdapter
         res = Rack::Response.new
 
         # Only localhost allowed
-        if req.ip != '127.0.0.1' then
+        local_ips = Socket.ip_address_list.map {|address| address.ip_address}
+        if not local_ips.include? req.ip then
             res.status = 404
             res.write "Not Found: #{req.script_name}#{req.path_info}"
             return res.finish
@@ -453,3 +458,5 @@ Thin::Server.start(configuration[:hostname], configuration[:port]) do
     end
 
 end
+
+
