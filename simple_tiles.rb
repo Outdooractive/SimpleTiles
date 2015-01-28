@@ -435,7 +435,7 @@ class StatisticsAdapter
                 res.write "#{project_name}_fail.min 0\n"
 
                 res.write "multigraph simpletiles_request_time_#{project_name}\n"
-                res.write "graph_title Simpletiles request time\n"
+                res.write "graph_title Simpletiles request time (#{project_name})\n"
                 res.write "graph_vlabel ms\n"
                 res.write "graph_category simpletiles\n"
                 res.write "#{project_name}_success_ms.label request time\n"
