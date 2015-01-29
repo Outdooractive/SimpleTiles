@@ -96,10 +96,10 @@ module Rack
 
                 if project_name then
                     success_ms = $mbtiles_counters[project_name][:success_ms] || request_time_ms
-                    $mbtiles_counters[project_name][:success_ms] = (success_ms + request_time_ms) / 2.0
+                    $mbtiles_counters[project_name][:success_ms] = (success_ms * 0.9) + (request_time_ms * 0.1)
                 end
 
-                $app_success_ms = ($app_success_ms + request_time_ms) / 2.0
+                $app_success_ms = ($app_success_ms * 0.9) + (request_time_ms * 0.1)
             end
         end
 
