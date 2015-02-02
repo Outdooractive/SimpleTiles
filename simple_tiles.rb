@@ -15,18 +15,6 @@ require 'json'
 
 $stdout.sync = true
 
-#
-# projects and global statistics counter
-#
-
-$mbtiles_projects = {}
-$mbtiles_counters = {}
-
-$app_request_counter = 0
-$app_success_counter = 0
-$app_fail_counter = 0
-$app_success_ms = 0
-
 
 #
 # Tools
@@ -37,6 +25,55 @@ module Math
 
     def self.pow(x, y)
         x ** y
+    end
+
+end
+
+# http://www.johndcook.com/blog/skewness_kurtosis/
+class RequestStatistics
+
+    def initialize()
+        clear()
+    end
+
+    def clear()
+        @n = 0
+        @m1 = @m2 = @m3 = @m4 = 0.0
+    end
+
+    def push(x)
+        n1 = @n
+        @n += 1
+
+        delta = x - @m1
+        delta_n = delta / @n
+        delta_n2 = delta_n * delta_n
+        term1 = delta * delta_n * n1
+
+        @m1 += delta_n
+        @m4 += term1 * delta_n2 * (@n*@n - 3*@n + 3) + 6 * delta_n2 * @m2 - 4 * delta_n * @m3
+        @m3 += term1 * delta_n * (@n - 2) - 3 * delta_n * @m2
+        @m2 += term1
+    end
+
+    def num_samples()
+        @n
+    end
+
+    def mean()
+        @m1
+    end
+
+    def variance()
+        @m2 / (@n-1.0);
+    end
+
+    def standard_deviation()
+        Math.sqrt( variance() )
+    end
+
+    def skewness()
+        Math.sqrt(@n) * @m3/ Math.pow(@m2, 1.5)
     end
 
 end
@@ -95,11 +132,11 @@ module Rack
                 project_name = header[X_PROJECT_NAME]
 
                 if project_name then
-                    success_ms = $mbtiles_counters[project_name][:success_ms] || request_time_ms
-                    $mbtiles_counters[project_name][:success_ms] = (success_ms * 0.9) + (request_time_ms * 0.1)
+                    request_statistics = ($mbtiles_counters[project_name][:request_statistics] ||= RequestStatistics.new)
+                    request_statistics.push(request_time_ms)
                 end
 
-                $app_success_ms = ($app_success_ms * 0.9) + (request_time_ms * 0.1)
+                $app_request_statistics.push(request_time_ms)
             end
         end
 
@@ -110,6 +147,19 @@ module Rack
     end
 
 end
+
+
+#
+# projects and global statistics counter
+#
+
+$mbtiles_projects = {}
+$mbtiles_counters = {}
+
+$app_request_counter = 0
+$app_success_counter = 0
+$app_fail_counter = 0
+$app_request_statistics = RequestStatistics.new
 
 
 #
@@ -424,9 +474,18 @@ class StatisticsAdapter
             res.write "graph_title Simpletiles request time\n"
             res.write "graph_vlabel ms\n"
             res.write "graph_category simpletiles_request_times\n"
-            res.write "success_ms.label request time\n"
-            res.write "success_ms.type GAUGE\n"
-            res.write "success_ms.min 0\n"
+            res.write "mean.label mean\n"
+            res.write "mean.type GAUGE\n"
+            res.write "mean.min 0\n"
+            res.write "variance.label variance\n"
+            res.write "variance.type GAUGE\n"
+            res.write "variance.min 0\n"
+            res.write "stddev.label standard deviation\n"
+            res.write "stddev.type GAUGE\n"
+            res.write "stddev.min 0\n"
+            res.write "skewness.label skewness\n"
+            res.write "skewness.type GAUGE\n"
+            res.write "skewness.min 0\n"
 
             $mbtiles_counters.each_key do |project_name|
                 res.write "multigraph simpletiles_requests_#{project_name}\n"
@@ -448,9 +507,18 @@ class StatisticsAdapter
                 res.write "graph_title Simpletiles request time (#{project_name})\n"
                 res.write "graph_vlabel ms\n"
                 res.write "graph_category simpletiles_request_times\n"
-                res.write "#{project_name}_success_ms.label request time\n"
-                res.write "#{project_name}_success_ms.type GAUGE\n"
-                res.write "#{project_name}_success_ms.min 0\n"
+                res.write "#{project_name}_mean.label mean\n"
+                res.write "#{project_name}_mean.type GAUGE\n"
+                res.write "#{project_name}_mean.min 0\n"
+                res.write "#{project_name}_variance.label variance\n"
+                res.write "#{project_name}_variance.type GAUGE\n"
+                res.write "#{project_name}_variance.min 0\n"
+                res.write "#{project_name}_stddev.label standard deviation\n"
+                res.write "#{project_name}_stddev.type GAUGE\n"
+                res.write "#{project_name}_stddev.min 0\n"
+                res.write "#{project_name}_skewness.label skewness\n"
+                res.write "#{project_name}_skewness.type GAUGE\n"
+                res.write "#{project_name}_skewness.min 0\n"
             end
 
             return res.finish
@@ -460,14 +528,21 @@ class StatisticsAdapter
         res.write "requests.value #{$app_request_counter}\nsuccess.value #{$app_success_counter}\nfail.value #{$app_fail_counter}\n"
 
         res.write "multigraph simpletiles_request_time\n"
-        res.write "success_ms.value #{$app_success_ms}\n"
+        res.write "mean.value #{$app_request_statistics.mean}\n"
+        res.write "variance.value #{$app_request_statistics.variance}\n"
+        res.write "stddev.value #{$app_request_statistics.standard_deviation}\n"
+        res.write "skewness.value #{$app_request_statistics.skewness}\n"
 
         $mbtiles_counters.each do |project_name, counters|
             res.write "multigraph simpletiles_requests_#{project_name}\n"
             res.write "#{project_name}_requests.value #{counters[:requests]}\n#{project_name}_success.value #{counters[:success]}\n#{project_name}_fail.value #{counters[:fail]}\n"
 
+            request_statistics = counters[:request_statistics] || RequestStatistics.new
             res.write "multigraph simpletiles_request_time_#{project_name}\n"
-            res.write "#{project_name}_success_ms.value #{counters[:success_ms]}\n"
+            res.write "#{project_name}_mean.value #{request_statistics.mean}\n"
+            res.write "#{project_name}_variance.value #{request_statistics.variance}\n"
+            res.write "#{project_name}_stddev.value #{request_statistics.standard_deviation}\n"
+            res.write "#{project_name}_skewness.value #{request_statistics.skewness}\n"
         end
 
         # returns the standard [status, headers, body] array
