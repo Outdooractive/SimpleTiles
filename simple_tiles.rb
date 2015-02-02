@@ -73,7 +73,11 @@ class RequestStatistics
     end
 
     def skewness()
-        Math.sqrt(@n) * @m3/ Math.pow(@m2, 1.5)
+        Math.sqrt(@n) * @m3 / Math.pow(@m2, 1.5)
+    end
+
+    def kurtosis()
+        @n*@m4 / (@m2*@m2) - 3.0;
     end
 
 end
