@@ -481,9 +481,9 @@ class StatisticsAdapter
             res.write "mean.label mean\n"
             res.write "mean.type GAUGE\n"
             res.write "mean.min 0\n"
-            res.write "variance.label variance\n"
-            res.write "variance.type GAUGE\n"
-            res.write "variance.min 0\n"
+            res.write "kurtosis.label kurtosis\n"
+            res.write "kurtosis.type GAUGE\n"
+            res.write "kurtosis.min 0\n"
             res.write "stddev.label standard deviation\n"
             res.write "stddev.type GAUGE\n"
             res.write "stddev.min 0\n"
@@ -514,9 +514,9 @@ class StatisticsAdapter
                 res.write "#{project_name}_mean.label mean\n"
                 res.write "#{project_name}_mean.type GAUGE\n"
                 res.write "#{project_name}_mean.min 0\n"
-                res.write "#{project_name}_variance.label variance\n"
-                res.write "#{project_name}_variance.type GAUGE\n"
-                res.write "#{project_name}_variance.min 0\n"
+                res.write "#{project_name}_kurtosis.label kurtosis\n"
+                res.write "#{project_name}_kurtosis.type GAUGE\n"
+                res.write "#{project_name}_kurtosis.min 0\n"
                 res.write "#{project_name}_stddev.label standard deviation\n"
                 res.write "#{project_name}_stddev.type GAUGE\n"
                 res.write "#{project_name}_stddev.min 0\n"
@@ -533,7 +533,7 @@ class StatisticsAdapter
 
         res.write "multigraph simpletiles_request_time\n"
         res.write "mean.value #{$app_request_statistics.mean}\n"
-        res.write "variance.value #{$app_request_statistics.variance}\n"
+        res.write "kurtosis.value #{$app_request_statistics.kurtosis}\n"
         res.write "stddev.value #{$app_request_statistics.standard_deviation}\n"
         res.write "skewness.value #{$app_request_statistics.skewness}\n"
 
@@ -544,7 +544,7 @@ class StatisticsAdapter
             request_statistics = counters[:request_statistics] || RequestStatistics.new
             res.write "multigraph simpletiles_request_time_#{project_name}\n"
             res.write "#{project_name}_mean.value #{request_statistics.mean}\n"
-            res.write "#{project_name}_variance.value #{request_statistics.variance}\n"
+            res.write "#{project_name}_kurtosis.value #{request_statistics.kurtosis}\n"
             res.write "#{project_name}_stddev.value #{request_statistics.standard_deviation}\n"
             res.write "#{project_name}_skewness.value #{request_statistics.skewness}\n"
         end
