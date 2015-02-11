@@ -581,7 +581,9 @@ puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] SimpleTiles server listenin
 
 app_logger = STDOUT
 
-if configuration[:logfile] != 'console' then
+if configuration[:logfile] == 'null' or configuration[:logfile] == '/dev/null' then
+    app_logger = nil
+elsif configuration[:logfile] != 'console' then
     puts "Redefining app_logger..."
     app_logger = Logger.new(File.expand_path(configuration[:logfile]), 'daily')
 end
@@ -589,7 +591,7 @@ end
 SimpleTilesAdapter.setup_db(configuration)
 
 Thin::Server.start(configuration[:hostname], configuration[:port]) do
-    use Rack::SimpleTilesLogger, app_logger
+    use Rack::SimpleTilesLogger, app_logger if app_logger
 
     map configuration[:path_prefix] do
         run SimpleTilesAdapter.new
