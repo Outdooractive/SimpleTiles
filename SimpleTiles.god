@@ -15,7 +15,7 @@ end
 
 # God configuration
 God.watch do |w|
-    w.name          = "SimpleTiles"
+    w.name          = "SimpleTiles (#{configuration[:hostname]}:#{configuration[:port]})"
     w.interval      = 30.seconds # default      
     w.env           = { "RACK_ENV" => "production" }
     w.start         = "#{BASE_DIR}/simple_tiles.rb"
