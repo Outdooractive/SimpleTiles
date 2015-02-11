@@ -1,5 +1,19 @@
 BASE_DIR = File.dirname(__FILE__)
 
+# Configuration for TCP port checks
+config_file = '/etc/simple_tiles.cfg'
+
+configuration = {
+    port: 3000,
+    hostname: '127.0.0.1'
+}
+
+begin
+    configuration.merge!(JSON.parse(File.read(config_file), :symbolize_names => true))
+rescue Exception => e
+end
+
+# God configuration
 God.watch do |w|
     w.name          = "SimpleTiles"
     w.interval      = 30.seconds # default      
@@ -32,6 +46,12 @@ God.watch do |w|
         restart.condition(:cpu_usage) do |c|
             c.above = 20.percent
             c.times = 15
+        end
+
+        restart.condition(:socket_responding) do |c|
+            c.family = 'tcp'
+            c.port = configuration[:port]
+            c.addr = configuration[:hostname]
         end
     end
 
