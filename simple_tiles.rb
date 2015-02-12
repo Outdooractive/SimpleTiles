@@ -579,9 +579,15 @@ end
 
 puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] SimpleTiles server listening on #{configuration[:hostname]}:#{configuration[:port]} in #{environment} mode, log to #{configuration[:logfile]}"
 
-app_logger = STDOUT
+app_logger = nil
 
-if configuration[:logfile] != 'console' then
+if configuration[:logfile] == 'null' or configuration[:logfile] == '/dev/null' then
+    puts "Discarding access logs"
+    app_logger = Logger.new("/dev/null")
+elsif configuration[:logfile] == 'console' then
+    puts "Logging to STDOUT"
+    app_logger = STDOUT
+else
     puts "Redefining app_logger..."
     app_logger = Logger.new(File.expand_path(configuration[:logfile]), 'daily')
 end
@@ -589,7 +595,7 @@ end
 SimpleTilesAdapter.setup_db(configuration)
 
 Thin::Server.start(configuration[:hostname], configuration[:port]) do
-    use Rack::SimpleTilesLogger, app_logger
+    use Rack::SimpleTilesLogger, app_logger if app_logger
 
     map configuration[:path_prefix] do
         run SimpleTilesAdapter.new
