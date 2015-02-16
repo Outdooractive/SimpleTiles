@@ -1,7 +1,5 @@
-#!/usr/bin/env ruby
 # encoding: UTF-8
 
-require 'thin'
 require 'rack'
 
 require 'pp'
@@ -554,59 +552,4 @@ class StatisticsAdapter
     end
 
 end
-
-
-#
-# Startup
-#
-environment = ENV["RACK_ENV"] || 'development'
-config_file = if environment == 'development' then 'simple_tiles.cfg' else '/etc/simple_tiles.cfg' end
-
-configuration = {
-    port: 3000,
-    hostname: '127.0.0.1',
-    logfile: 'console',
-    path_prefix: '',
-    layers: []
-}
-
-begin
-    configuration.merge!(JSON.parse(File.read(config_file), :symbolize_names => true))
-rescue Exception => e
-    puts "Invalid configuration file #{config_file}"
-    exit(1)
-end
-
-puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] SimpleTiles server listening on #{configuration[:hostname]}:#{configuration[:port]} in #{environment} mode, log to #{configuration[:logfile]}"
-
-app_logger = nil
-
-if configuration[:logfile] == 'null' or configuration[:logfile] == '/dev/null' then
-    puts "Discarding access logs"
-    app_logger = Logger.new("/dev/null")
-elsif configuration[:logfile] == 'console' then
-    puts "Logging to STDOUT"
-    app_logger = STDOUT
-else
-    puts "Redefining app_logger..."
-    app_logger = Logger.new(File.expand_path(configuration[:logfile]), 'daily')
-end
-
-SimpleTilesAdapter.setup_db(configuration)
-
-Thin::Server.start(configuration[:hostname], configuration[:port]) do
-    use Rack::SimpleTilesLogger, app_logger if app_logger
-
-    map configuration[:path_prefix] do
-        run SimpleTilesAdapter.new
-    end
-
-    map '/statistics' do
-        run StatisticsAdapter.new
-    end
-
-end
-
-
-puts "Done..."
 
