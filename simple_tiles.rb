@@ -6,10 +6,13 @@ require 'pp'
 require 'logger'
 require 'socket'
 
-require 'pg'
-require 'mongo'
-require 'sqlite3'
 require 'json'
+require 'mongo'
+
+if RUBY_PLATFORM != "java" then
+    require 'pg'
+    require 'sqlite3'
+end
 
 $stdout.sync = true
 
@@ -233,7 +236,7 @@ class SimpleTilesAdapter
         }
         options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
 
-        client = MongoClient.new(options['host'], options['port'], :slave_ok => true)
+        client = MongoClient.new(options['host'], options['port'], :slave_ok => true, :pool_size => 10)
         db = client.db("admin")
         if db.nil? then
             puts "Error opening database at '#{filename}'"
@@ -266,67 +269,79 @@ class SimpleTilesAdapter
     end
 
     # SQLite
-    def SimpleTilesAdapter.open_sqlite(project, current_name, filename, zoom_range)
-        filename = File.expand_path(File.join(File.dirname(__FILE__), filename)) if filename[0] != '/'
-
-        db = SQLite3::Database.new(filename)
-
-        if db.nil? then
-            puts "Error opening database at '#{filename}'"
-            exit(1)
+    if RUBY_PLATFORM == "java" then
+        def SimpleTilesAdapter.open_sqlite(project, current_name, filename, zoom_range)
+            puts "- WARNING: Skipping SQLite3 database '#{current_name}' on JRuby"
         end
+    else
+        def SimpleTilesAdapter.open_sqlite(project, current_name, filename, zoom_range)
+            filename = File.expand_path(File.join(File.dirname(__FILE__), filename)) if filename[0] != '/'
 
-        zoom_range.each do |current_zoom|
-            project[:database][current_zoom] = db
-            project[:db_type][current_zoom] = 'sqlite'
+            db = SQLite3::Database.new(filename)
+
+            if db.nil? then
+                puts "Error opening database at '#{filename}'"
+                exit(1)
+            end
+
+            zoom_range.each do |current_zoom|
+                project[:database][current_zoom] = db
+                project[:db_type][current_zoom] = 'sqlite'
+            end
+
+            db.execute "PRAGMA cache_size = 20000"
+            db.execute "PRAGMA temp_store = memory"
+
+            image_format = db.get_first_row("SELECT value FROM metadata WHERE name='format'")['value'] rescue nil
+
+            if image_format then
+                zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
+            else
+                puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
+                zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
+            end
+
+            puts "- Layer '#{current_name}' #{zoom_range} (#{filename}) uses '#{project[:format][zoom_range[0]]}' image tiles"
         end
-
-        db.execute "PRAGMA cache_size = 20000"
-        db.execute "PRAGMA temp_store = memory"
-
-        image_format = db.get_first_row("SELECT value FROM metadata WHERE name='format'")['value'] rescue nil
-
-        if image_format then
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
-        else
-            puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
-        end
-
-        puts "- Layer '#{current_name}' #{zoom_range} (#{filename}) uses '#{project[:format][zoom_range[0]]}' image tiles"
     end
 
     # PostgreSQL
-    def SimpleTilesAdapter.open_postgres(project, current_name, filename, zoom_range)
-        options = {
-            'host' => '127.0.0.1',
-            'port' => 5432
-        }
-        options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
-        options.delete('driver')
-
-        db = PG::Connection.open(options)
-
-        if db.nil? then
-            puts "Error opening database at '#{filename}'"
-            exit(1)
+    if RUBY_PLATFORM == "java" then
+        def SimpleTilesAdapter.open_postgres(project, current_name, filename, zoom_range)
+            puts "- WARNING: Skipping PostgreSQL database '#{current_name}' on JRuby"
         end
+    else
+        def SimpleTilesAdapter.open_postgres(project, current_name, filename, zoom_range)
+            options = {
+                'host' => '127.0.0.1',
+                'port' => 5432
+            }
+            options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
+            options.delete('driver')
 
-        zoom_range.each do |current_zoom|
-            project[:database][current_zoom] = db
-            project[:db_type][current_zoom] = 'pg'
+            db = PG::Connection.open(options)
+
+            if db.nil? then
+                puts "Error opening database at '#{filename}'"
+                exit(1)
+            end
+
+            zoom_range.each do |current_zoom|
+                project[:database][current_zoom] = db
+                project[:db_type][current_zoom] = 'pg'
+            end
+
+            image_format = db.exec("SELECT value FROM metadata WHERE name='format'").getvalue(0,0) rescue nil
+
+            if image_format then
+                zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
+            else
+                puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
+                zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
+            end
+
+            puts "- Layer '#{current_name}' #{zoom_range} (pg://#{options['host']}:#{options['port']}/#{options['dbname']}) uses '#{project[:format][zoom_range[0]]}' image tiles"
         end
-
-        image_format = db.exec("SELECT value FROM metadata WHERE name='format'").getvalue(0,0) rescue nil
-
-        if image_format then
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
-        else
-            puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
-        end
-
-        puts "- Layer '#{current_name}' #{zoom_range} (pg://#{options['host']}:#{options['port']}/#{options['dbname']}) uses '#{project[:format][zoom_range[0]]}' image tiles"
     end
 
 
