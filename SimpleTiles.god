@@ -1,4 +1,16 @@
-BASE_DIR = File.dirname(__FILE__)
+# Common variables
+BASE_DIR   = File.dirname(__FILE__)
+PID_DIR    = "/var/run/simple_tiles"
+PID_FILE   = File.join(PID_DIR, "puma.pid")
+STATE_FILE = File.join(PID_DIR, "puma.state")
+CTL_FILE   = "unix://" + File.join(PID_DIR, "puma.ctl")
+
+SIMPLETILES_USER  = "simpletiles"
+SIMPLETILES_GROUP = "simpletiles"
+
+# Create the directory for the PID
+FileUtils.mkdir_p PID_DIR
+FileUtils.chown SIMPLETILES_USER, SIMPLETILES_GROUP, PID_DIR
 
 # Configuration for TCP port checks
 config_file = '/etc/simple_tiles.cfg'
@@ -18,18 +30,18 @@ God.watch do |w|
     w.name          = "SimpleTiles (#{configuration[:hostname]}:#{configuration[:port]})"
     w.interval      = 30.seconds # default      
     w.env           = { "RACK_ENV" => "production" }
-    w.start         = "puma -e production -b tcp://#{configuration[:hostname]}:#{configuration[:port]} -w 8 --pidfile /var/run/simpletiles_puma.pid --preload #{BASE_DIR}/config.ru"
-    w.stop          = "kill -TERM `cat /var/run/simpletiles_puma.pid`"
-    w.restart       = "kill -USR2 `cat /var/run/simpletiles_puma.pid`"
+    w.start         = "puma -C #{BASE_DIR}/puma.rb"
+    w.stop          = "pumactl -S #{STATE_FILE} stop"
+    w.restart       = "pumactl -S #{STATE_FILE} restart"
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
-    w.pid_file      = "/var/run/simpletiles_puma.pid"
+    w.pid_file      = PID_FILE
     w.log           = "/var/log/simple_tiles/simple_tiles.error.log"
     w.dir           = BASE_DIR
     w.keepalive
 
-    w.uid = 'simpletiles'
-    w.gid = 'simpletiles'
+    w.uid = SIMPLETILES_USER
+    w.gid = SIMPLETILES_GROUP
 
     w.behavior(:clean_pid_file)
 
