@@ -236,19 +236,17 @@ class SimpleTilesAdapter
         }
         options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
 
-        client = MongoClient.new(options['host'], options['port'], :slave_ok => true, :pool_size => 20)
-        db = client.db("admin")
+        user_string = ""
+        user_string = "#{options['user']}:#{options['password']}@" if options['user'] and options['password']
+        connect_string = "mongodb://#{user_string}#{options['host']}:#{options['port']}/admin"
+
+        client = MongoClient.from_uri(connect_string, :slave_ok => true, :pool_size => 20)
+        db = client.db(options['dbname'])
         if db.nil? then
             puts "Error opening database at '#{filename}'"
             exit(1)
         end
 
-        if options['user'] and options['password'] and not db.authenticate(options['user'], options['password']) then
-            puts "Error opening database at '#{filename}'"
-            exit(1)
-        end
-
-        db = client.db(options['dbname'])
         coll = db["tiles"]
 
         zoom_range.each do |current_zoom|
