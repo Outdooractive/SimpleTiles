@@ -18,9 +18,12 @@ God.watch do |w|
     w.name          = "SimpleTiles (#{configuration[:hostname]}:#{configuration[:port]})"
     w.interval      = 30.seconds # default      
     w.env           = { "RACK_ENV" => "production" }
-    w.start         = "#{BASE_DIR}/simple_tiles.rb"
+    w.start         = "puma -e production -b tcp://#{configuration[:hostname]}:#{configuration[:port]} -w 8 --pidfile #{BASE_DIR}/puma.pid --preload #{BASE_DIR}/config.ru"
+    w.stop          = "kill -TERM `cat #{BASE_DIR}/puma.pid`"
+    w.restart       = "kill -USR2 `cat #{BASE_DIR}/puma.pid`"
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
+    w.w.pid_file    = "#{BASE_DIR}/puma.pid"
     w.log           = "/var/log/simple_tiles/simple_tiles.error.log"
     w.dir           = BASE_DIR
     w.keepalive
@@ -48,11 +51,13 @@ God.watch do |w|
             c.times = 15
         end
 
-        restart.condition(:socket_responding) do |c|
-            c.family = 'tcp'
-            c.port = configuration[:port]
-            c.addr = configuration[:hostname]
-        end
+#        restart.condition(:http_response_code) do |c|
+#            c.port = configuration[:port]
+#            c.host = configuration[:hostname]
+#            c.code_is = 400
+#            c.timeout = 10
+#            c.path = "/statistics"
+#        end
     end
 
     # lifecycle
