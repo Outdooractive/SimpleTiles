@@ -236,7 +236,7 @@ class SimpleTilesAdapter
         }
         options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
 
-        client = MongoClient.new(options['host'], options['port'], :slave_ok => true, :pool_size => 10)
+        client = MongoClient.new(options['host'], options['port'], :slave_ok => true, :pool_size => 20)
         db = client.db("admin")
         if db.nil? then
             puts "Error opening database at '#{filename}'"

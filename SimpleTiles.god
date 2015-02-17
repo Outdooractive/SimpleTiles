@@ -18,18 +18,18 @@ God.watch do |w|
     w.name          = "SimpleTiles (#{configuration[:hostname]}:#{configuration[:port]})"
     w.interval      = 30.seconds # default      
     w.env           = { "RACK_ENV" => "production" }
-    w.start         = "puma -e production -b tcp://#{configuration[:hostname]}:#{configuration[:port]} -w 8 --pidfile #{BASE_DIR}/puma.pid --preload #{BASE_DIR}/config.ru"
-    w.stop          = "kill -TERM `cat #{BASE_DIR}/puma.pid`"
-    w.restart       = "kill -USR2 `cat #{BASE_DIR}/puma.pid`"
+    w.start         = "puma -e production -b tcp://#{configuration[:hostname]}:#{configuration[:port]} -w 8 --pidfile /var/run/simpletiles_puma.pid --preload #{BASE_DIR}/config.ru"
+    w.stop          = "kill -TERM `cat /var/run/simpletiles_puma.pid`"
+    w.restart       = "kill -USR2 `cat /var/run/simpletiles_puma.pid`"
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
-    w.w.pid_file    = "#{BASE_DIR}/puma.pid"
+    w.pid_file      = "/var/run/simpletiles_puma.pid"
     w.log           = "/var/log/simple_tiles/simple_tiles.error.log"
     w.dir           = BASE_DIR
     w.keepalive
 
-    w.uid = 'www-data'
-    w.gid = 'www-data'
+    w.uid = 'simpletiles'
+    w.gid = 'simpletiles'
 
     w.behavior(:clean_pid_file)
 
