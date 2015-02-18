@@ -63,13 +63,11 @@ God.watch do |w|
             c.times = 15
         end
 
-#        restart.condition(:http_response_code) do |c|
-#            c.port = configuration[:port]
-#            c.host = configuration[:hostname]
-#            c.code_is = 400
-#            c.timeout = 10
-#            c.path = "/statistics"
-#        end
+        restart.condition(:socket_responding) do |c|
+            c.port = configuration[:port]
+            c.addr = configuration[:hostname]
+            c.family = 'tcp'
+        end
     end
 
     # lifecycle
@@ -79,9 +77,9 @@ God.watch do |w|
             c.times = 5
             c.within = 5.minute
             c.transition = :unmonitored
-            c.retry_in = 10.minutes
+            c.retry_in = 5.minutes
             c.retry_times = 5
-            c.retry_within = 2.hours
+            c.retry_within = 1.hours
         end
     end
 end
