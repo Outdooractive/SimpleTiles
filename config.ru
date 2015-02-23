@@ -38,19 +38,21 @@ puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] SimpleTiles server listenin
 app_logger = nil
 
 if configuration[:logfile] == 'null' or configuration[:logfile] == '/dev/null' then
-    puts "Discarding access logs"
+    puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Discarding access logs"
     app_logger = Logger.new("/dev/null")
 elsif configuration[:logfile] == 'console' then
-    puts "Logging to STDOUT"
+    puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Logging to STDOUT"
     app_logger = STDOUT
 else
-    puts "Redefining app_logger..."
+    puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Redefining app_logger..."
     app_logger = Logger.new(File.expand_path(configuration[:logfile]), 'daily')
 end
 
 SimpleTilesAdapter.setup_db(configuration)
 
 use Rack::SimpleTilesLogger, app_logger if app_logger
+
+puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Setup done, loading maps..."
 
 map configuration[:path_prefix] do
     run SimpleTilesAdapter.new
