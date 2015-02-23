@@ -432,7 +432,7 @@ class SimpleTilesAdapter
         average_size = $mbtiles_counters[project_name][:average_size] || tile_data.length
         $mbtiles_counters[project_name][:average_size] = (average_size + tile_data.length) / 2
 
-        res.headers[CONTENT_TYPE] = mime_type(image_format) if ENV["RACK_ENV"] == 'production'
+        res.headers[CONTENT_TYPE] = mime_type("." + image_format)
         res.write tile_data
  
         # returns the standard [status, headers, body] array
