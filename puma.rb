@@ -29,7 +29,7 @@ rackup    File.join(BASE_DIR, "config.ru")
 
 environment 'production'
 daemonize   true
-threads     4, 64
+threads     4, 32
 
 pidfile    PID_FILE
 state_path STATE_FILE
