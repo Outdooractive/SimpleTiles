@@ -63,6 +63,8 @@ God.watch do |w|
             c.times = 15
         end
 
+        restart.condition(:process_exits)
+
         restart.condition(:socket_responding) do |c|
             c.port = configuration[:port]
             c.addr = configuration[:hostname]
