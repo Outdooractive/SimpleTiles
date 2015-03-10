@@ -1,7 +1,7 @@
 #\ -s puma
 # encoding: UTF-8
 
-require 'pp'   
+require 'pp'
 require 'json'
 require 'logger'
 require 'rack'
@@ -9,7 +9,7 @@ require 'rack'
 $:.unshift File.dirname(__FILE__)
 require 'simple_tiles'
 
-$stdout.sync = true   
+$stdout.sync = true
 
 #
 # Startup
@@ -57,8 +57,12 @@ puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Setup done, loading maps...
 map configuration[:path_prefix] do
     run SimpleTilesAdapter.new
 end
-                
+
 map '/statistics' do
     run StatisticsAdapter.new
+end
+
+map '/statistics.json' do
+    run JSONStatisticsAdapter.new
 end
 

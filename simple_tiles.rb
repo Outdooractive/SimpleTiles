@@ -434,7 +434,7 @@ class SimpleTilesAdapter
 
         res.headers[CONTENT_TYPE] = mime_type("." + image_format)
         res.write tile_data
- 
+
         # returns the standard [status, headers, body] array
         res.finish
     end
@@ -444,6 +444,64 @@ end
 #
 # Statistics controller
 #
+class JSONStatisticsAdapter
+
+    def check_nan(number)
+        number.nan? ? 0.0 : number
+    end
+
+    def call(env)
+        req = Rack::Request.new(env)
+        res = Rack::Response.new
+
+        # Only localhost allowed
+        local_ips = Socket.ip_address_list.map {|address| address.ip_address}
+        if not local_ips.include? req.ip then
+            res.status = 404
+            res.write "Not Found: #{req.script_name}#{req.path_info}"
+            return res.finish
+        end
+
+        stats = {
+            'requests' => {
+                'requests' => $app_request_counter,
+                'success' => $app_success_counter,
+                'fail' => $app_fail_counter
+            },
+            'request_time' => {
+                'mean' => check_nan($app_request_statistics.mean),
+                'stddev' => check_nan($app_request_statistics.standard_deviation),
+                'skewness' => check_nan($app_request_statistics.skewness)
+            },
+            'projects' => {}
+        }
+
+        $mbtiles_counters.each do |project_name, counters|
+            stats['projects'][project_name] = {}
+
+            stats['projects'][project_name]['requests'] = {
+                'requests' => counters[:requests],
+                'success' => counters[:success],
+                'fail' => counters[:fail]
+            }
+
+            request_statistics = counters[:request_statistics] || RequestStatistics.new
+
+            stats['projects'][project_name]['request_time'] = {
+                'mean' => check_nan(request_statistics.mean),
+                'stddev' => check_nan(request_statistics.standard_deviation),
+                'skewness' => check_nan(request_statistics.skewness)
+            }
+        end
+
+        res.write stats.to_json
+
+        # returns the standard [status, headers, body] array
+        res.finish
+    end
+
+end
+
 class StatisticsAdapter
 
     def call(env)
