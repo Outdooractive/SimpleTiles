@@ -463,6 +463,7 @@ class JSONStatisticsAdapter
         end
 
         stats = {
+            'host' => Socket.gethostname,
             'requests' => {
                 'requests' => $app_request_counter,
                 'success' => $app_success_counter,
