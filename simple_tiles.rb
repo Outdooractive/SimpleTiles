@@ -602,7 +602,7 @@ class StatisticsAdapter
             res.write "graph_category simpletiles_uptime\n"
             res.write "graph_title Simpletiles uptime\n"
             res.write "graph_scale no\n"
-            res.write "graph_vlabel days"
+            res.write "graph_vlabel days\n"
             res.write "uptime.label Client uptime\n"
             res.write "uptime.cdef uptime,86400,/\n"
             res.write "uptime.type GAUGE\n"
