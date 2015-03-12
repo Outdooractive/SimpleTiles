@@ -599,13 +599,13 @@ class StatisticsAdapter
             end
 
             res.write "multigraph simpletiles_uptime\n"
-            res.write "graph_category simpletiles_uptime"
-            res.write "graph_title Simpletiles uptime"
-            res.write "graph_scale no"
+            res.write "graph_category simpletiles_uptime\n"
+            res.write "graph_title Simpletiles uptime\n"
+            res.write "graph_scale no\n"
             res.write "graph_vlabel days"
-            res.write "uptime.label Client uptime"
-            res.write "uptime.cdef uptime,86400,/"
-            res.write "uptime.type GAUGE"
+            res.write "uptime.label Client uptime\n"
+            res.write "uptime.cdef uptime,86400,/\n"
+            res.write "uptime.type GAUGE\n"
 
             return res.finish
         end
@@ -632,7 +632,7 @@ class StatisticsAdapter
         end
 
         res.write "multigraph simpletiles_uptime\n"
-        res.write "uptime.value #{Time.now.to_i - $server_start_time}"
+        res.write "uptime.value #{Time.now.to_i - $server_start_time}\n"
 
         # returns the standard [status, headers, body] array
         res.finish
