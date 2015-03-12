@@ -158,6 +158,8 @@ end
 # projects and global statistics counter
 #
 
+$server_start_time = Time.now.to_i
+
 $mbtiles_projects = {}
 $mbtiles_counters = {}
 
@@ -464,6 +466,7 @@ class JSONStatisticsAdapter
 
         stats = {
             'host' => Socket.gethostname,
+            'uptime' => (Time.now.to_i - $server_start_time),
             'requests' => {
                 'requests' => $app_request_counter,
                 'success' => $app_success_counter,
@@ -595,6 +598,15 @@ class StatisticsAdapter
                 res.write "#{project_name}_skewness.min 0\n"
             end
 
+            res.write "multigraph simpletiles_uptime\n"
+            res.write "graph_category simpletiles_uptime"
+            res.write "graph_title Simpletiles uptime"
+            res.write "graph_scale no"
+            res.write "graph_vlabel days"
+            res.write "uptime.label Client uptime"
+            res.write "uptime.cdef uptime,86400,/"
+            res.write "uptime.type GAUGE"
+
             return res.finish
         end
 
@@ -618,6 +630,9 @@ class StatisticsAdapter
             res.write "#{project_name}_stddev.value #{request_statistics.standard_deviation}\n"
             res.write "#{project_name}_skewness.value #{request_statistics.skewness}\n"
         end
+
+        res.write "multigraph simpletiles_uptime\n"
+        res.write "uptime.value #{Time.now.to_i - $server_start_time}"
 
         # returns the standard [status, headers, body] array
         res.finish
