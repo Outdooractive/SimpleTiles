@@ -221,12 +221,19 @@ class SimpleTilesAdapter
         zoom_range = current_tileset[:zoom_range]
         zoom_range = [0..18] if zoom_range.nil? or zoom_range.length == 0
 
-        if filename.include? "driver=postgres" then
-            SimpleTilesAdapter.open_postgres($mbtiles_projects[current_name], current_name, filename, zoom_range)
-        elsif filename.include? "driver=mongodb" then
-            SimpleTilesAdapter.open_mongodb($mbtiles_projects[current_name], current_name, filename, zoom_range)
-        else
-            SimpleTilesAdapter.open_sqlite($mbtiles_projects[current_name], current_name, filename, zoom_range)
+        begin
+            if filename.include? "driver=postgres" then
+                SimpleTilesAdapter.open_postgres($mbtiles_projects[current_name], current_name, filename, zoom_range)
+            elsif filename.include? "driver=mongodb" then
+                SimpleTilesAdapter.open_mongodb($mbtiles_projects[current_name], current_name, filename, zoom_range)
+            else
+                SimpleTilesAdapter.open_sqlite($mbtiles_projects[current_name], current_name, filename, zoom_range)
+            end
+        rescue Exception => e
+            puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Database #{current_name} not yet ready, waiting..."
+            pp e
+            sleep(5)
+            retry
         end
     end
 
