@@ -249,7 +249,7 @@ class SimpleTilesAdapter
         user_string = "#{options['user']}:#{options['password']}@" if options['user'] and options['password']
         connect_string = "mongodb://#{user_string}#{options['host']}:#{options['port']}/admin"
 
-        client = MongoClient.from_uri(connect_string, :slave_ok => true, :pool_size => 10)
+        client = MongoClient.from_uri(connect_string, :slave_ok => true, :pool_size => 10, :op_timeout => 30)
         db = client.db(options['dbname'])
         if db.nil? then
             puts "Error opening database at '#{filename}'"
