@@ -1,13 +1,13 @@
-require "pp"
-require "json"
+require 'pp'
+require 'json'
 
 # Common variables
 BASE_DIR   = File.dirname(__FILE__)
-PID_DIR    = "/var/run/simple_tiles"
-PID_FILE   = File.join(PID_DIR, "puma.pid")
-STATE_FILE = File.join(PID_DIR, "puma.state")
-CTL_FILE   = "unix://" + File.join(PID_DIR, "puma.ctl")
-LOG_FILE   = "/var/log/simple_tiles/simple_tiles.error.log"
+PID_DIR    = '/var/run/simple_tiles'
+PID_FILE   = File.join(PID_DIR, 'puma.pid')
+STATE_FILE = File.join(PID_DIR, 'puma.state')
+CTL_FILE   = 'unix://' + File.join(PID_DIR, 'puma.ctl')
+LOG_FILE   = '/var/log/simple_tiles/simple_tiles.error.log'
 
 # Configuration for TCP port checks
 config_file = '/etc/simple_tiles.cfg'
@@ -18,14 +18,14 @@ configuration = {
 }
 
 begin
-    configuration.merge!(JSON.parse(File.read(config_file), :symbolize_names => true))
+    configuration.merge!(JSON.parse(File.read(config_file), symbolize_names: true))
 rescue Exception => e
     pp e
 end
 
 # Settings
 directory BASE_DIR
-rackup    File.join(BASE_DIR, "config.ru")
+rackup    File.join(BASE_DIR, 'config.ru')
 
 environment 'production'
 daemonize   true
@@ -42,5 +42,3 @@ bind "tcp://#{configuration[:hostname]}:#{configuration[:port]}"
 on_restart do
   puts 'On restart...'
 end
-
-

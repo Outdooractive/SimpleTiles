@@ -9,13 +9,12 @@ require 'socket'
 require 'json'
 require 'mongo'
 
-if RUBY_PLATFORM != "java" then
+if RUBY_PLATFORM != 'java'
     require 'pg'
     require 'sqlite3'
 end
 
 $stdout.sync = true
-
 
 #
 # Tools
@@ -25,7 +24,7 @@ class ::Logger; alias_method :write, :<<; end
 module Math
 
     def self.pow(x, y)
-        x ** y
+        x**y
     end
 
 end
@@ -33,11 +32,11 @@ end
 # http://www.johndcook.com/blog/skewness_kurtosis/
 class RequestStatistics
 
-    def initialize()
-        clear()
+    def initialize
+        clear
     end
 
-    def clear()
+    def clear
         @n = 0
         @m1 = @m2 = @m3 = @m4 = 0.0
     end
@@ -52,33 +51,33 @@ class RequestStatistics
         term1 = delta * delta_n * n1
 
         @m1 += delta_n
-        @m4 += term1 * delta_n2 * (@n*@n - 3*@n + 3) + 6 * delta_n2 * @m2 - 4 * delta_n * @m3
+        @m4 += term1 * delta_n2 * ((@n * @n) - (3 * @n) + 3) + 6 * delta_n2 * @m2 - 4 * delta_n * @m3
         @m3 += term1 * delta_n * (@n - 2) - 3 * delta_n * @m2
         @m2 += term1
     end
 
-    def num_samples()
+    def num_samples
         @n
     end
 
-    def mean()
+    def mean
         @m1
     end
 
-    def variance()
-        @m2 / (@n-1.0);
+    def variance
+        @m2 / (@n - 1.0)
     end
 
-    def standard_deviation()
-        Math.sqrt( variance() )
+    def standard_deviation
+        Math.sqrt(variance)
     end
 
-    def skewness()
+    def skewness
         Math.sqrt(@n) * @m3 / Math.pow(@m2, 1.5)
     end
 
-    def kurtosis()
-        @n*@m4 / (@m2*@m2) - 3.0;
+    def kurtosis
+        (@n * @m4) / (@m2 * @m2) - 3.0
     end
 
 end
@@ -96,7 +95,7 @@ module Rack
         REQUEST_METHOD = 'REQUEST_METHOD'.freeze
         X_PROJECT_NAME = 'X-PROJECT-NAME'.freeze
 
-        def initialize(app, logger=nil)
+        def initialize(app, logger = nil)
             @app = app
             @logger = logger
         end
@@ -117,13 +116,13 @@ module Rack
 
             content_length = extract_content_length(header)
 
-            msg = FORMAT % [
-                ended_at.strftime("%d/%b/%Y:%H:%M:%S %z"),
-                env[REQUEST_METHOD],
-                env[PATH_INFO],
-                status.to_s[0..3],
-                content_length.to_s,
-                request_time_ms ]
+            msg = FORMAT % [ ended_at.strftime('%d/%b/%Y:%H:%M:%S %z'),
+                             env[REQUEST_METHOD],
+                             env[PATH_INFO],
+                             status.to_s[0..3],
+                             content_length.to_s,
+                             request_time_ms
+                           ]
 
             logger = @logger || env['rack.errors']
 
@@ -133,10 +132,10 @@ module Rack
                 logger << msg
             end
 
-            if status.to_s[0..3] == '200' then
+            if status.to_s[0..3] == '200'
                 project_name = header[X_PROJECT_NAME]
 
-                if project_name then
+                if project_name
                     request_statistics = ($mbtiles_counters[project_name][:request_statistics] ||= RequestStatistics.new)
                     request_statistics.push(request_time_ms)
                 end
@@ -153,7 +152,6 @@ module Rack
 
 end
 
-
 #
 # projects and global statistics counter
 #
@@ -167,7 +165,6 @@ $app_request_counter = 0
 $app_success_counter = 0
 $app_fail_counter = 0
 $app_request_statistics = RequestStatistics.new
-
 
 #
 # Controller
@@ -187,7 +184,7 @@ class SimpleTilesAdapter
             project_name  = layer[:name]
             current_files = layer[:files]
 
-            if project_name.nil? or current_files.nil? or current_files.length == 0 then
+            if project_name.nil? or current_files.nil? or current_files.length == 0
                 puts "Error loading project '#{project_name}', continuing..."
                 next
             end
@@ -198,9 +195,9 @@ class SimpleTilesAdapter
             $mbtiles_projects[project_name][:db_type] = {}
 
             counters = {
-                :requests => 0,
-                :success => 0,
-                :fail => 0
+                requests: 0,
+                success: 0,
+                fail: 0
             }
             $mbtiles_counters[project_name] = counters
 
@@ -214,7 +211,7 @@ class SimpleTilesAdapter
         filename = current_tileset[:filename]
         return if filename.nil?
 
-        if current_tileset[:default_tile_path] then
+        if current_tileset[:default_tile_path]
             $mbtiles_projects[current_name][:default_tile] = File.read(current_tileset[:default_tile_path])
         end
 
@@ -222,15 +219,15 @@ class SimpleTilesAdapter
         zoom_range = [0..18] if zoom_range.nil? or zoom_range.length == 0
 
         begin
-            if filename.include? "driver=postgres" then
+            if filename.include? 'driver=postgres'
                 SimpleTilesAdapter.open_postgres($mbtiles_projects[current_name], current_name, filename, zoom_range)
-            elsif filename.include? "driver=mongodb" then
+            elsif filename.include? 'driver=mongodb'
                 SimpleTilesAdapter.open_mongodb($mbtiles_projects[current_name], current_name, filename, zoom_range)
             else
                 SimpleTilesAdapter.open_sqlite($mbtiles_projects[current_name], current_name, filename, zoom_range)
             end
         rescue Exception => e
-            puts "[#{Time.now.strftime("%d/%b/%Y:%H:%M:%S %z")}] Database #{current_name} not yet ready, waiting..."
+            puts "[#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] Database #{current_name} not yet ready, waiting..."
             pp e
             sleep(5)
             retry
@@ -243,41 +240,41 @@ class SimpleTilesAdapter
             'host' => '127.0.0.1',
             'port' => 27017
         }
-        options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
+        options.merge! Hash[filename.split(' ').map { |value| value.split('=') }]
 
-        user_string = ""
+        user_string = ''
         user_string = "#{options['user']}:#{options['password']}@" if options['user'] and options['password']
         connect_string = "mongodb://#{user_string}#{options['host']}:#{options['port']}/admin"
 
-        client = MongoClient.from_uri(connect_string, :slave_ok => true, :pool_size => 10, :op_timeout => 30)
+        client = MongoClient.from_uri(connect_string, slave_ok: true, pool_size: 10, op_timeout: 30)
         db = client.db(options['dbname'])
-        if db.nil? then
+        if db.nil?
             puts "Error opening database at '#{filename}'"
             exit(1)
         end
 
-        coll = db["tiles"]
+        coll = db['tiles']
 
         zoom_range.each do |current_zoom|
             project[:database][current_zoom] = coll
             project[:db_type][current_zoom] = 'mongodb'
         end
 
-        image_format = db["metadata"].find_one({"name" => "format"})['value'] rescue nil
+        image_format = db['metadata'].find_one({'name' => 'format'})['value'] rescue nil
 
-        if image_format then
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
+        if image_format
+            zoom_range.each { |current_zoom| project[:format][current_zoom] = image_format }
         else
             puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
-            zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
+            zoom_range.each { |current_zoom| project[:format][current_zoom] = 'png' }
         end
 
         puts "- Layer '#{current_name}' #{zoom_range} (mongodb://#{options['host']}:#{options['port']}/#{options['dbname']}) uses '#{project[:format][zoom_range[0]]}' image tiles"
     end
 
     # SQLite
-    if RUBY_PLATFORM == "java" then
-        def SimpleTilesAdapter.open_sqlite(project, current_name, filename, zoom_range)
+    if RUBY_PLATFORM == 'java'
+        def SimpleTilesAdapter.open_sqlite(_project, _current_name, _filename, _zoom_range)
             puts "- WARNING: Skipping SQLite3 database '#{current_name}' on JRuby"
         end
     else
@@ -286,7 +283,7 @@ class SimpleTilesAdapter
 
             db = SQLite3::Database.new(filename)
 
-            if db.nil? then
+            if db.nil?
                 puts "Error opening database at '#{filename}'"
                 exit(1)
             end
@@ -296,16 +293,16 @@ class SimpleTilesAdapter
                 project[:db_type][current_zoom] = 'sqlite'
             end
 
-            db.execute "PRAGMA cache_size = 20000"
-            db.execute "PRAGMA temp_store = memory"
+            db.execute 'PRAGMA cache_size = 20000'
+            db.execute 'PRAGMA temp_store = memory'
 
             image_format = db.get_first_row("SELECT value FROM metadata WHERE name='format'")['value'] rescue nil
 
-            if image_format then
-                zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
+            if image_format
+                zoom_range.each { |current_zoom| project[:format][current_zoom] = image_format }
             else
                 puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
-                zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
+                zoom_range.each { |current_zoom| project[:format][current_zoom] = 'png' }
             end
 
             puts "- Layer '#{current_name}' #{zoom_range} (#{filename}) uses '#{project[:format][zoom_range[0]]}' image tiles"
@@ -313,8 +310,8 @@ class SimpleTilesAdapter
     end
 
     # PostgreSQL
-    if RUBY_PLATFORM == "java" then
-        def SimpleTilesAdapter.open_postgres(project, current_name, filename, zoom_range)
+    if RUBY_PLATFORM == 'java'
+        def SimpleTilesAdapter.open_postgres(_project, _current_name, _filename, _zoom_range)
             puts "- WARNING: Skipping PostgreSQL database '#{current_name}' on JRuby"
         end
     else
@@ -323,12 +320,12 @@ class SimpleTilesAdapter
                 'host' => '127.0.0.1',
                 'port' => 5432
             }
-            options.merge! Hash[filename.split(" ").map {|value| value.split("=")}]
+            options.merge! Hash[filename.split(' ').map { |value| value.split('=') }]
             options.delete('driver')
 
             db = PG::Connection.open(options)
 
-            if db.nil? then
+            if db.nil?
                 puts "Error opening database at '#{filename}'"
                 exit(1)
             end
@@ -338,19 +335,18 @@ class SimpleTilesAdapter
                 project[:db_type][current_zoom] = 'pg'
             end
 
-            image_format = db.exec("SELECT value FROM metadata WHERE name='format'").getvalue(0,0) rescue nil
+            image_format = db.exec("SELECT value FROM metadata WHERE name='format'").getvalue(0, 0) rescue nil
 
-            if image_format then
-                zoom_range.each {|current_zoom| project[:format][current_zoom] = image_format}
+            if image_format
+                zoom_range.each { |current_zoom| project[:format][current_zoom] = image_format }
             else
                 puts "- Missing format metadata in the '#{current_name}' layer' #{zoom_range}, assuming 'png'..."
-                zoom_range.each {|current_zoom| project[:format][current_zoom] = 'png'}
+                zoom_range.each { |current_zoom| project[:format][current_zoom] = 'png' }
             end
 
             puts "- Layer '#{current_name}' #{zoom_range} (pg://#{options['host']}:#{options['port']}/#{options['dbname']}) uses '#{project[:format][zoom_range[0]]}' image tiles"
         end
     end
-
 
     # Request handling
     def call(env)
@@ -361,7 +357,7 @@ class SimpleTilesAdapter
 
         match = /^\/(?<project>\w+)\/(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)\.(?<format>\w+)$/.match(req.path_info) rescue nil
 
-        if match.nil? then
+        if match.nil?
             $app_fail_counter += 1
 
             res.status = 404
@@ -381,12 +377,12 @@ class SimpleTilesAdapter
 
         project = $mbtiles_projects[project_name]
 
-        if project then
+        if project
             $mbtiles_counters[project_name][:requests] += 1
             res.header[X_PROJECT_NAME] = project_name
         end
 
-        if project.nil? or zoom < 0 or x < 0 or y < 0 then
+        if project.nil? or zoom < 0 or x < 0 or y < 0
             $app_fail_counter += 1
             $mbtiles_counters[project_name][:fail] += 1 if project
 
@@ -402,31 +398,31 @@ class SimpleTilesAdapter
         db        = project[:database][zoom] rescue nil
         db_format = project[:format][zoom] rescue nil
 
-        if db and db_format == image_format then
+        if db and db_format == image_format
             db_type = project[:db_type][zoom]
 
-            if db_type == 'sqlite' then
-                tile_data = db.get_first_row("SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?", zoom, x, y)[0] rescue nil
+            if db_type == 'sqlite'
+                tile_data = db.get_first_row('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', zoom, x, y)[0] rescue nil
 
-            elsif db_type == 'mongodb' then
-                tile_id = "%d/%d/%d/%d" % [zoom, x, y, 1]
-                tile_data = db.find_one({"_id" => tile_id})['d'] rescue nil
+            elsif db_type == 'mongodb'
+                tile_id = '%d/%d/%d/%d' % [zoom, x, y, 1]
+                tile_data = db.find_one({'_id' => tile_id})['d'] rescue nil
 
-            elsif db_type == 'pg' then
-                tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3 AND tile_scale=1', [zoom, x, y], 1).getvalue(0,0) rescue nil
+            elsif db_type == 'pg'
+                tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3 AND tile_scale=1', [zoom, x, y], 1).getvalue(0, 0) rescue nil
 
-                if tile_data.nil? then
-                    tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3', [zoom, x, y], 1).getvalue(0,0) rescue nil
+                if tile_data.nil?
+                    tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3', [zoom, x, y], 1).getvalue(0, 0) rescue nil
                 end
             end
         end
 
-        if tile_data.nil? then
+        if tile_data.nil?
             tile_data = project[:default_tile]
-            image_format = "png"
+            image_format = 'png'
         end
 
-        if tile_data.nil? then
+        if tile_data.nil?
             $app_fail_counter += 1
             $mbtiles_counters[project_name][:fail] += 1
 
@@ -441,7 +437,7 @@ class SimpleTilesAdapter
         average_size = $mbtiles_counters[project_name][:average_size] || tile_data.length
         $mbtiles_counters[project_name][:average_size] = (average_size + tile_data.length) / 2
 
-        res.headers[CONTENT_TYPE] = mime_type("." + image_format)
+        res.headers[CONTENT_TYPE] = mime_type('.' + image_format)
         res.write tile_data
 
         # returns the standard [status, headers, body] array
@@ -464,8 +460,8 @@ class JSONStatisticsAdapter
         res = Rack::Response.new
 
         # Only localhost allowed
-        local_ips = Socket.ip_address_list.map {|address| address.ip_address}
-        if not local_ips.include? req.ip then
+        local_ips = Socket.ip_address_list.map(&:ip_address)
+        if not local_ips.include? req.ip
             res.status = 404
             res.write "Not Found: #{req.script_name}#{req.path_info}"
             return res.finish
@@ -520,8 +516,8 @@ class StatisticsAdapter
         res = Rack::Response.new
 
         # Only localhost allowed
-        local_ips = Socket.ip_address_list.map {|address| address.ip_address}
-        if not local_ips.include? req.ip then
+        local_ips = Socket.ip_address_list.map(&:ip_address)
+        if not local_ips.include? req.ip
             res.status = 404
             res.write "Not Found: #{req.script_name}#{req.path_info}"
             return res.finish
@@ -539,7 +535,7 @@ class StatisticsAdapter
             return res.finish
         end
 
-        if option_name == 'config' then
+        if option_name == 'config'
             res.write "multigraph simpletiles_requests\n"
             res.write "graph_title Simpletiles request rate\n"
             res.write "graph_vlabel requests/s\n"
@@ -561,9 +557,9 @@ class StatisticsAdapter
             res.write "mean.label mean\n"
             res.write "mean.type GAUGE\n"
             res.write "mean.min 0\n"
-            #res.write "kurtosis.label kurtosis\n"
-            #res.write "kurtosis.type GAUGE\n"
-            #res.write "kurtosis.min 0\n"
+            # res.write "kurtosis.label kurtosis\n"
+            # res.write "kurtosis.type GAUGE\n"
+            # res.write "kurtosis.min 0\n"
             res.write "stddev.label standard deviation\n"
             res.write "stddev.type GAUGE\n"
             res.write "stddev.min 0\n"
@@ -594,9 +590,9 @@ class StatisticsAdapter
                 res.write "#{project_name}_mean.label mean\n"
                 res.write "#{project_name}_mean.type GAUGE\n"
                 res.write "#{project_name}_mean.min 0\n"
-                #res.write "#{project_name}_kurtosis.label kurtosis\n"
-                #res.write "#{project_name}_kurtosis.type GAUGE\n"
-                #res.write "#{project_name}_kurtosis.min 0\n"
+                # res.write "#{project_name}_kurtosis.label kurtosis\n"
+                # res.write "#{project_name}_kurtosis.type GAUGE\n"
+                # res.write "#{project_name}_kurtosis.min 0\n"
                 res.write "#{project_name}_stddev.label standard deviation\n"
                 res.write "#{project_name}_stddev.type GAUGE\n"
                 res.write "#{project_name}_stddev.min 0\n"
@@ -622,7 +618,7 @@ class StatisticsAdapter
 
         res.write "multigraph simpletiles_request_time\n"
         res.write "mean.value #{$app_request_statistics.mean}\n"
-        #res.write "kurtosis.value #{$app_request_statistics.kurtosis}\n"
+        # res.write "kurtosis.value #{$app_request_statistics.kurtosis}\n"
         res.write "stddev.value #{$app_request_statistics.standard_deviation}\n"
         res.write "skewness.value #{$app_request_statistics.skewness}\n"
 
@@ -633,7 +629,7 @@ class StatisticsAdapter
             request_statistics = counters[:request_statistics] || RequestStatistics.new
             res.write "multigraph simpletiles_request_time_#{project_name}\n"
             res.write "#{project_name}_mean.value #{request_statistics.mean}\n"
-            #res.write "#{project_name}_kurtosis.value #{request_statistics.kurtosis}\n"
+            # res.write "#{project_name}_kurtosis.value #{request_statistics.kurtosis}\n"
             res.write "#{project_name}_stddev.value #{request_statistics.standard_deviation}\n"
             res.write "#{project_name}_skewness.value #{request_statistics.skewness}\n"
         end
@@ -646,4 +642,3 @@ class StatisticsAdapter
     end
 
 end
-
