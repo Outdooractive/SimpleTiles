@@ -159,11 +159,13 @@ end
 $server_start_time = Time.now.to_i
 
 $mbtiles_projects = {}
+$project_aliases  = {}
 $mbtiles_counters = {}
 
 $app_request_counter = 0
 $app_success_counter = 0
-$app_fail_counter = 0
+$app_fail_counter    = 0
+
 $app_request_statistics = RequestStatistics.new
 
 #
@@ -182,6 +184,7 @@ class SimpleTilesAdapter
 
         layers.each do |layer|
             project_name  = layer[:name]
+            alias_name    = layer[:alias]
             current_files = layer[:files]
 
             if project_name.nil? or current_files.nil? or current_files.length == 0
@@ -203,6 +206,19 @@ class SimpleTilesAdapter
 
             current_files.each do |current_tileset|
                 SimpleTilesAdapter.open_database(project_name, current_tileset)
+            end
+
+            unless alias_name.nil? or alias_name.length == 0
+                if $project_aliases.key?(alias_name)
+                    puts "Alias #{alias_name} (-> #{project_name} already exists, skipping..."
+                    next
+                end
+
+                $project_aliases[alias_name] = project_name
+
+                # Alias and Original point to the same object
+                $mbtiles_projects[alias_name] = $mbtiles_projects[project_name]
+                $mbtiles_counters[alias_name] = $mbtiles_counters[project_name]
             end
         end
     end
@@ -484,6 +500,8 @@ class JSONStatisticsAdapter
         }
 
         $mbtiles_counters.each do |project_name, counters|
+            next if $project_aliases.key?(project_name)
+
             stats['projects'][project_name] = {}
 
             stats['projects'][project_name]['requests'] = {
@@ -529,6 +547,8 @@ class StatisticsAdapter
 
         if option_name == 'average_size'
             $mbtiles_counters.each do |project_name, counters|
+                next if $project_aliases.key?(project_name)
+
                 res.write "#{project_name}_average_size.value #{counters[:average_size]}\n"
             end
 
@@ -568,6 +588,8 @@ class StatisticsAdapter
             res.write "skewness.min 0\n"
 
             $mbtiles_counters.each_key do |project_name|
+                next if $project_aliases.key?(project_name)
+
                 res.write "multigraph simpletiles_requests_#{project_name}\n"
                 res.write "graph_title Simpletiles request rate (#{project_name})\n"
                 res.write "graph_vlabel requests/s\n"
@@ -623,6 +645,8 @@ class StatisticsAdapter
         res.write "skewness.value #{$app_request_statistics.skewness}\n"
 
         $mbtiles_counters.each do |project_name, counters|
+            next if $project_aliases.key?(project_name)
+
             res.write "multigraph simpletiles_requests_#{project_name}\n"
             res.write "#{project_name}_requests.value #{counters[:requests]}\n#{project_name}_success.value #{counters[:success]}\n#{project_name}_fail.value #{counters[:fail]}\n"
 
