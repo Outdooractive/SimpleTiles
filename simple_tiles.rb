@@ -371,7 +371,7 @@ class SimpleTilesAdapter
 
         $app_request_counter += 1
 
-        match = /^\/(?<project>\w+)\/(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)\.(?<format>\w+)$/.match(req.path_info) rescue nil
+        match = /^\/(?<project>[\w\.]+)\/(?<zoom>\d+)\/(?<x>\d+)\/(?<y>\d+)\.(?<format>\w+)$/.match(req.path_info) rescue nil
 
         if match.nil?
             $app_fail_counter += 1
