@@ -6,6 +6,7 @@ STATE_FILE = File.join(PID_DIR, "puma.state")
 CTL_FILE   = "unix://" + File.join(PID_DIR, "puma.ctl")
 
 PUMA_PATH  = "/home/simpletiles/.rvm/bin/bootup_puma"
+PUMACTL_PATH  = "/home/simpletiles/.rvm/bin/bootup_pumactl"
 
 SIMPLETILES_USER  = "simpletiles"
 SIMPLETILES_GROUP = "simpletiles"
@@ -33,8 +34,8 @@ God.watch do |w|
     w.interval      = 30.seconds # default      
     w.env           = { "RACK_ENV" => "production" }
     w.start         = "#{PUMA_PATH} -C #{BASE_DIR}/puma.rb"
-    w.stop          = "pumactl -S #{STATE_FILE} stop"
-    w.restart       = "pumactl -S #{STATE_FILE} restart"
+    w.stop          = "#{PUMACTL_PATH} -S #{STATE_FILE} stop"
+    w.restart       = "#{PUMACTL_PATH} -S #{STATE_FILE} restart"
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
     w.pid_file      = PID_FILE
