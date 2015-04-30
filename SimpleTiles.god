@@ -1,3 +1,5 @@
+require 'fileutils'
+
 # Common variables
 BASE_DIR   = File.dirname(__FILE__)
 LOG_DIR    = "/var/log/simple_tiles"
@@ -6,8 +8,8 @@ PID_FILE   = File.join(PID_DIR, "puma.pid")
 STATE_FILE = File.join(PID_DIR, "puma.state")
 CTL_FILE   = "unix://" + File.join(PID_DIR, "puma.ctl")
 
-PUMA_PATH  = "/home/simpletiles/.rvm/bin/bootup_puma"
-PUMACTL_PATH  = "/home/simpletiles/.rvm/bin/bootup_pumactl"
+PUMA_PATH    = "/home/simpletiles/.rvm/bin/bootup_puma"
+PUMACTL_PATH = "/home/simpletiles/.rvm/bin/bootup_pumactl"
 
 SIMPLETILES_USER  = "simpletiles"
 SIMPLETILES_GROUP = "simpletiles"
@@ -17,7 +19,7 @@ FileUtils.mkdir_p PID_DIR
 FileUtils.chown SIMPLETILES_USER, SIMPLETILES_GROUP, PID_DIR
 
 FileUtils.mkdir_p LOG_DIR
-FileUitls.chown SIMPLETILES_USER, SIMPLETILES_GROUP, LOG_DIR
+FileUtils.chown SIMPLETILES_USER, SIMPLETILES_GROUP, LOG_DIR
 
 # Configuration for TCP port checks
 config_file = '/etc/simple_tiles.cfg'
