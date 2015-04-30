@@ -1,5 +1,6 @@
 # Common variables
 BASE_DIR   = File.dirname(__FILE__)
+LOG_DIR    = "/var/log/simple_tiles"
 PID_DIR    = "/var/run/simple_tiles"
 PID_FILE   = File.join(PID_DIR, "puma.pid")
 STATE_FILE = File.join(PID_DIR, "puma.state")
@@ -11,9 +12,12 @@ PUMACTL_PATH  = "/home/simpletiles/.rvm/bin/bootup_pumactl"
 SIMPLETILES_USER  = "simpletiles"
 SIMPLETILES_GROUP = "simpletiles"
 
-# Create the directory for the PID
+# Create the directory for the PID and logs
 FileUtils.mkdir_p PID_DIR
 FileUtils.chown SIMPLETILES_USER, SIMPLETILES_GROUP, PID_DIR
+
+FileUtils.mkdir_p LOG_DIR
+FileUitls.chown SIMPLETILES_USER, SIMPLETILES_GROUP, LOG_DIR
 
 # Configuration for TCP port checks
 config_file = '/etc/simple_tiles.cfg'
@@ -39,7 +43,7 @@ God.watch do |w|
     w.start_grace   = 10.seconds
     w.restart_grace = 10.seconds
     w.pid_file      = PID_FILE
-    w.log           = "/var/log/simple_tiles/simple_tiles.error.log"
+    w.log           = File.join(LOG_DIR, "simple_tiles.error.log")
     w.dir           = BASE_DIR
     w.keepalive
 
