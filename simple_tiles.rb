@@ -290,7 +290,7 @@ class SimpleTilesAdapter
 
     # SQLite
     if RUBY_PLATFORM == 'java'
-        def SimpleTilesAdapter.open_sqlite(_project, _current_name, _filename, _zoom_range)
+        def SimpleTilesAdapter.open_sqlite(_project, current_name, _filename, _zoom_range)
             puts "- WARNING: Skipping SQLite3 database '#{current_name}' on JRuby"
         end
     else
@@ -327,7 +327,7 @@ class SimpleTilesAdapter
 
     # PostgreSQL
     if RUBY_PLATFORM == 'java'
-        def SimpleTilesAdapter.open_postgres(_project, _current_name, _filename, _zoom_range)
+        def SimpleTilesAdapter.open_postgres(_project, current_name, _filename, _zoom_range)
             puts "- WARNING: Skipping PostgreSQL database '#{current_name}' on JRuby"
         end
     else
