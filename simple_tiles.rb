@@ -413,27 +413,33 @@ class SimpleTilesAdapter
 
         db        = project[:database][zoom] rescue nil
         db_format = project[:format][zoom] rescue nil
+        db_error  = false
 
         if db and db_format == image_format
             db_type = project[:db_type][zoom]
 
-            if db_type == 'sqlite'
-                tile_data = db.get_first_row('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', zoom, x, y)[0] rescue nil
+            begin
+                if db_type == 'sqlite'
+                    tile_data = db.get_first_row('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?', zoom, x, y)[0] rescue nil
 
-            elsif db_type == 'mongodb'
-                tile_id = '%d/%d/%d/%d' % [zoom, x, y, 1]
-                tile_data = db.find_one({'_id' => tile_id})['d'] rescue nil
+                elsif db_type == 'mongodb'
+                    tile_id = '%d/%d/%d/%d' % [zoom, x, y, 1]
+                    db_result = db.find_one({'_id' => tile_id})
+                    tile_data = db_result['d'] if db_result
 
-            elsif db_type == 'pg'
-                tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3 AND tile_scale=1', [zoom, x, y], 1).getvalue(0, 0) rescue nil
+                elsif db_type == 'pg'
+                    tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3 AND tile_scale=1', [zoom, x, y], 1).getvalue(0, 0) rescue nil
 
-                if tile_data.nil?
-                    tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3', [zoom, x, y], 1).getvalue(0, 0) rescue nil
+                    if tile_data.nil?
+                        tile_data = db.exec_params('SELECT tile_data FROM tiles WHERE zoom_level=$1 AND tile_column=$2 AND tile_row=$3', [zoom, x, y], 1).getvalue(0, 0) rescue nil
+                    end
                 end
+            rescue
+                db_error = true
             end
         end
 
-        if tile_data.nil?
+        if tile_data.nil? && !db_error
             tile_data = project[:default_tile]
             image_format = 'png'
         end
